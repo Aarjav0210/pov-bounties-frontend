@@ -239,8 +239,14 @@ export async function submitBountyVideoDirectS3(
           reject(error);
         }
       } else {
-        console.error("❌ S3 upload failed:", xhr.status);
-        reject(new Error(`S3 upload failed: ${xhr.status}`));
+        console.error("❌ S3 upload failed with status:", xhr.status);
+        console.error("Response text:", xhr.responseText);
+        console.error("File info:", {
+          name: videoFile.name,
+          type: videoFile.type,
+          size: videoFile.size
+        });
+        reject(new Error(`S3 upload failed: ${xhr.status} - ${xhr.responseText || 'No response'}`));
       }
     });
 
