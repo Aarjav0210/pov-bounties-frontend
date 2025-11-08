@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   return (
@@ -28,22 +29,28 @@ export default function Home() {
             <h2 className="text-gray-900 text-lg font-bold">Pepper</h2>
           </Link>
           <div className="flex items-center gap-6">
-            <nav className="hidden items-center gap-6 md:flex">
-              <Link href="/bounties" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">
-                Bounties
+            <div className="inline-flex items-center justify-center rounded-lg bg-gray-100 p-1">
+              <Link
+                href="/dashboard"
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-md transition-all",
+                  "hover:bg-white hover:text-gray-900",
+                  "bg-white text-gray-900 shadow-sm"
+                )}
+              >
+                Community
               </Link>
-              <Link href="/dashboard" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/enterprise" className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">
+              <Link
+                href="/enterprise"
+                className={cn(
+                  "px-4 py-2 text-sm font-medium rounded-md transition-all",
+                  "hover:bg-white hover:text-gray-900",
+                  "text-gray-600"
+                )}
+              >
                 Enterprise
               </Link>
-            </nav>
-            <Link href="/dashboard">
-              <Button className="h-10 px-4 text-sm">
-                Sign In
-              </Button>
-            </Link>
+            </div>
           </div>
         </div>
       </header>

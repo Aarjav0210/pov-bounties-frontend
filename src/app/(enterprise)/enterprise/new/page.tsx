@@ -18,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Info, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const bountySchema = z.object({
   title: z.string().min(10, "Title must be at least 10 characters"),
@@ -28,7 +28,7 @@ const bountySchema = z.object({
   duration: z.string().min(1, "Please specify expected duration"),
   reward: z.number().min(100, "Minimum reward is $100"),
   maxSubmissions: z.number().min(1, "At least 1 submission required"),
-  acceptanceCriteria: z.string().min(20, "Please provide acceptance criteria"),
+  imageCount: z.number().min(1000, "Minimum image count is 1000"),
   licensing: z.string().min(1, "Please select a licensing option"),
 });
 
@@ -36,9 +36,9 @@ type BountyFormData = z.infer<typeof bountySchema>;
 
 export default function NewBountyPage() {
   const router = useRouter();
-  const [domains, setDomains] = useState<string[]>(["retail"]);
   const [augmentations, setAugmentations] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageCount, setImageCount] = useState(1000);
 
   const {
     register,
@@ -51,6 +51,7 @@ export default function NewBountyPage() {
     defaultValues: {
       reward: 500,
       maxSubmissions: 10,
+      imageCount: 1000,
     },
   });
 
@@ -80,7 +81,6 @@ export default function NewBountyPage() {
       
       console.log("Form data:", {
         ...data,
-        domains,
         augmentations,
         totalCost,
       });
@@ -94,12 +94,6 @@ export default function NewBountyPage() {
     }
   };
 
-  const toggleDomain = (domain: string) => {
-    setDomains((prev) =>
-      prev.includes(domain) ? prev.filter((d) => d !== domain) : [...prev, domain]
-    );
-  };
-
   const toggleAugmentation = (aug: string) => {
     setAugmentations((prev) =>
       prev.includes(aug) ? prev.filter((a) => a !== aug) : [...prev, aug]
@@ -109,15 +103,17 @@ export default function NewBountyPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Create New Bounty</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-black leading-tight tracking-tighter text-gray-900 md:text-4xl mb-2">
+          Create New Bounty
+        </h1>
+        <p className="text-gray-600">
           Define your video data collection requirements
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Task Description */}
-        <Card>
+        <Card className="border-0">
           <CardHeader>
             <CardTitle>Task Description</CardTitle>
             <CardDescription>
@@ -126,74 +122,170 @@ export default function NewBountyPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="title">
-                Bounty Title <span className="text-destructive">*</span>
+              <Label htmlFor="title" className="text-gray-900">
+                Bounty Title <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="title"
-                placeholder="e.g., Capture retail shopping experience"
-                {...register("title")}
-              />
+                <Input
+                  id="title"
+                  placeholder="e.g., Capture retail shopping experience"
+                  className="mt-1 border-0 bg-gray-50"
+                  {...register("title")}
+                />
               {errors.title && (
-                <p className="text-sm text-destructive mt-1">{errors.title.message}</p>
+                <p className="text-sm text-red-500 mt-1">{errors.title.message}</p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="description">
-                Detailed Description <span className="text-destructive">*</span>
+              <Label htmlFor="description" className="text-gray-900">
+                Detailed Description <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="description"
                 placeholder="Provide detailed instructions for contributors..."
                 rows={5}
+                className="mt-1 border-0 bg-gray-50"
                 {...register("description")}
               />
               {errors.description && (
-                <p className="text-sm text-destructive mt-1">{errors.description.message}</p>
+                <p className="text-sm text-red-500 mt-1">{errors.description.message}</p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="industry">
-                Industry <span className="text-destructive">*</span>
+              <Label htmlFor="industry" className="text-gray-900">
+                Industry <span className="text-red-500">*</span>
               </Label>
               <Select onValueChange={(value) => setValue("industry", value)}>
-                <SelectTrigger id="industry">
-                  <SelectValue placeholder="Select industry" />
+                <SelectTrigger id="industry" className="mt-1 border-0 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-green-500 focus:ring-offset-0">
+                  <SelectValue placeholder="Select industry" className="text-gray-500" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="retail">Retail</SelectItem>
-                  <SelectItem value="healthcare">Healthcare</SelectItem>
-                  <SelectItem value="logistics">Logistics</SelectItem>
-                  <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                  <SelectItem value="food-beverage">Food & Beverage</SelectItem>
-                  <SelectItem value="education">Education</SelectItem>
+                <SelectContent className="bg-white border-0 shadow-lg">
+                  <SelectItem value="retail" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Retail</SelectItem>
+                  <SelectItem value="healthcare" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Healthcare</SelectItem>
+                  <SelectItem value="logistics" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Logistics</SelectItem>
+                  <SelectItem value="manufacturing" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Manufacturing</SelectItem>
+                  <SelectItem value="food-beverage" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Food & Beverage</SelectItem>
+                  <SelectItem value="education" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Education</SelectItem>
                 </SelectContent>
               </Select>
               {errors.industry && (
-                <p className="text-sm text-destructive mt-1">{errors.industry.message}</p>
+                <p className="text-sm text-red-500 mt-1">{errors.industry.message}</p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="duration">
-                Expected Duration <span className="text-destructive">*</span>
+              <Label htmlFor="duration" className="text-gray-900">
+                Expected Duration <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="duration"
                 placeholder="e.g., 10-15 minutes"
+                className="mt-1 border-0 bg-gray-50"
                 {...register("duration")}
               />
               {errors.duration && (
-                <p className="text-sm text-destructive mt-1">{errors.duration.message}</p>
+                <p className="text-sm text-red-500 mt-1">{errors.duration.message}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Augmentations */}
+        <Card className="border-0">
+          <CardHeader>
+            <CardTitle>Data Augmentations (Optional)</CardTitle>
+            <CardDescription>
+              Add AI-powered enhancements to collected videos
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              {Object.entries(augmentationCosts).map(([key, cost]) => {
+                const isSelected = augmentations.includes(key);
+                return (
+                  <div
+                    key={key}
+                    onClick={() => toggleAugmentation(key)}
+                    className={cn(
+                      "flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all",
+                      isSelected
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900 capitalize mb-1">
+                          {key.replace("-", " ")}
+                        </h4>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-gray-600">
+                            +${cost} per submission
+                          </p>
+                          {isSelected && (
+                            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 ml-2" />
+                          )}
+                        </div>
+                      </div>
+                      <Info className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Scale */}
+        <Card className="border-0">
+          <CardHeader>
+            <CardTitle>Scale</CardTitle>
+            <CardDescription>
+              Specify how many images you want to collect
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label htmlFor="imageCount" className="text-gray-900">
+                  Image Count <span className="text-red-500">*</span>
+                </Label>
+                <span className="text-2xl font-bold text-green-600">
+                  {imageCount.toLocaleString()}
+                </span>
+              </div>
+              <input
+                type="range"
+                id="imageCount"
+                min="1000"
+                max="50000"
+                step="500"
+                value={imageCount}
+                {...register("imageCount", { valueAsNumber: true })}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  setImageCount(value);
+                  setValue("imageCount", value, { shouldValidate: true });
+                }}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-slider"
+                style={{
+                  background: `linear-gradient(to right, #22c55e 0%, #22c55e ${((imageCount - 1000) / (50000 - 1000)) * 100}%, #e5e7eb ${((imageCount - 1000) / (50000 - 1000)) * 100}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>1,000</span>
+                <span>50,000</span>
+              </div>
+              {errors.imageCount && (
+                <p className="text-sm text-red-500 mt-1">{errors.imageCount.message}</p>
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* Budget & Payout */}
-        <Card>
+        <Card className="border-0">
           <CardHeader>
             <CardTitle>Budget & Payout</CardTitle>
             <CardDescription>
@@ -203,47 +295,49 @@ export default function NewBountyPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="reward">
-                  Reward per Submission ($) <span className="text-destructive">*</span>
+                <Label htmlFor="reward" className="text-gray-900">
+                  Reward per Submission ($) <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="reward"
                   type="number"
                   min="100"
                   step="50"
+                  className="mt-1 border-0 bg-gray-50"
                   {...register("reward", { valueAsNumber: true })}
                 />
                 {errors.reward && (
-                  <p className="text-sm text-destructive mt-1">{errors.reward.message}</p>
+                  <p className="text-sm text-red-500 mt-1">{errors.reward.message}</p>
                 )}
               </div>
 
               <div>
-                <Label htmlFor="maxSubmissions">
-                  Max Submissions <span className="text-destructive">*</span>
+                <Label htmlFor="maxSubmissions" className="text-gray-900">
+                  Max Submissions <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="maxSubmissions"
                   type="number"
                   min="1"
+                  className="mt-1 border-0 bg-gray-50"
                   {...register("maxSubmissions", { valueAsNumber: true })}
                 />
                 {errors.maxSubmissions && (
-                  <p className="text-sm text-destructive mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     {errors.maxSubmissions.message}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="bg-muted p-4 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-lg border-0">
               <div className="flex justify-between items-center">
-                <span className="font-semibold">Estimated Total Cost:</span>
-                <span className="text-2xl font-bold text-primary">
+                <span className="font-semibold text-gray-900">Estimated Total Cost:</span>
+                <span className="text-2xl font-bold text-green-600">
                   ${totalCost.toLocaleString()}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-gray-600 mt-2">
                 Base reward: ${((reward || 0) * (maxSubmissions || 0)).toLocaleString()}
                 {totalAugmentationCost > 0 &&
                   ` + Augmentations: $${(totalAugmentationCost * (maxSubmissions || 0)).toLocaleString()}`}
@@ -252,94 +346,8 @@ export default function NewBountyPage() {
           </CardContent>
         </Card>
 
-        {/* Domain Checkboxes */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Validation Domains</CardTitle>
-            <CardDescription>
-              Select domains for automated video validation
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              {["retail", "healthcare", "logistics", "manufacturing", "office", "outdoor"].map(
-                (domain) => (
-                  <div key={domain} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={domain}
-                      checked={domains.includes(domain)}
-                      onCheckedChange={() => toggleDomain(domain)}
-                    />
-                    <Label htmlFor={domain} className="capitalize cursor-pointer">
-                      {domain}
-                    </Label>
-                  </div>
-                )
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Acceptance Criteria */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Acceptance Criteria</CardTitle>
-            <CardDescription>
-              Define specific requirements for accepting submissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="List your acceptance criteria (e.g., minimum resolution, required scenes, audio quality)..."
-              rows={5}
-              {...register("acceptanceCriteria")}
-            />
-            {errors.acceptanceCriteria && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.acceptanceCriteria.message}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Augmentations */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Data Augmentations (Optional)</CardTitle>
-            <CardDescription>
-              Add AI-powered enhancements to collected videos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(augmentationCosts).map(([key, cost]) => (
-                <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox
-                      id={key}
-                      checked={augmentations.includes(key)}
-                      onCheckedChange={() => toggleAugmentation(key)}
-                    />
-                    <div>
-                      <Label htmlFor={key} className="capitalize cursor-pointer font-medium">
-                        {key.replace("-", " ")}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        +${cost} per submission
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Info className="h-4 w-4" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Privacy & Licensing */}
-        <Card>
+        <Card className="border-0">
           <CardHeader>
             <CardTitle>Privacy & Licensing</CardTitle>
             <CardDescription>
@@ -348,40 +356,39 @@ export default function NewBountyPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="licensing">
-                License Type <span className="text-destructive">*</span>
+              <Label htmlFor="licensing" className="text-gray-900">
+                License Type <span className="text-red-500">*</span>
               </Label>
               <Select onValueChange={(value) => setValue("licensing", value)}>
-                <SelectTrigger id="licensing">
-                  <SelectValue placeholder="Select license" />
+                <SelectTrigger id="licensing" className="mt-1 border-0 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-green-500 focus:ring-offset-0">
+                  <SelectValue placeholder="Select license" className="text-gray-500" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="commercial">Commercial Use</SelectItem>
-                  <SelectItem value="research">Research Only</SelectItem>
-                  <SelectItem value="internal">Internal Use Only</SelectItem>
-                  <SelectItem value="custom">Custom License</SelectItem>
+                <SelectContent className="bg-white border-0 shadow-lg">
+                  <SelectItem value="commercial" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Commercial Use</SelectItem>
+                  <SelectItem value="research" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Research Only</SelectItem>
+                  <SelectItem value="internal" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Internal Use Only</SelectItem>
+                  <SelectItem value="custom" className="text-gray-900 focus:bg-green-50 focus:text-gray-900">Custom License</SelectItem>
                 </SelectContent>
               </Select>
               {errors.licensing && (
-                <p className="text-sm text-destructive mt-1">{errors.licensing.message}</p>
+                <p className="text-sm text-red-500 mt-1">{errors.licensing.message}</p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Separator />
-
         {/* Submit */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-6">
           <Button
             type="button"
             variant="outline"
             onClick={() => router.back()}
             disabled={isSubmitting}
+            className="bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
           >
             Cancel
           </Button>
-          <Button type="submit" size="lg" disabled={isSubmitting}>
+          <Button type="submit" size="lg" variant="enterprise" disabled={isSubmitting}>
             {isSubmitting ? (
               "Creating Bounty..."
             ) : (
