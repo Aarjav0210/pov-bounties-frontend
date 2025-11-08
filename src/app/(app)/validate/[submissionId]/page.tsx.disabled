@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useReducer } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useReducer, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,16 +20,29 @@ import {
 } from "@/components/ui/table";
 import { Steps, Step } from "@/components/common/Steps";
 import { QualityGauge } from "@/components/common/QualityGauge";
-import type { ValidationEvent, StepId } from "@/lib/types/validation";
-import { ArrowLeft, CheckCircle2, Clock } from "lucide-react";
+import type { ValidationEvent, StepId, ValidationStatusResponse } from "@/lib/types/validation";
+import { connectValidationStream } from "@/lib/api/client";
+import { ArrowLeft, CheckCircle2, Clock, XCircle } from "lucide-react";
 
 const STEP_DEFINITIONS: { id: StepId; label: string; description?: string }[] = [
   { id: "domainCheck", label: "Rapid Domain Match", description: "Matching video domain" },
   { id: "sceneParsing", label: "Scene Parsing", description: "Analyzing scenes and objects" },
   { id: "vlmClassification", label: "VLM Task Classification", description: "Classifying task content" },
-  { id: "supervisorVerify", label: "Ethics & Privacy Scan", description: "Checking compliance" },
+  { id: "llmMapping", label: "LLM Task Validation", description: "Final task evaluation" },
   { id: "qualityScore", label: "Final Quality Assessment", description: "Computing quality score" },
 ];
+
+// Map API stages to UI step IDs
+function mapStageToStepId(stage: string): StepId | null {
+  const stageMap: Record<string, StepId> = {
+    domain_matching: "domainCheck",
+    parsing_scenes: "sceneParsing",
+    analyzing_scenes: "vlmClassification",
+    validating_task: "llmMapping",
+    done: "qualityScore",
+  };
+  return stageMap[stage] || null;
+}
 
 interface ValidationState {
   steps: Step[];
@@ -38,6 +51,8 @@ interface ValidationState {
   confidences: Record<StepId, number>;
   models: Record<StepId, string>;
   isComplete: boolean;
+  isRejected: boolean;
+  rejectionReason?: string;
   finalScore?: number;
   breakdown?: {
     completeness: number;
@@ -46,10 +61,18 @@ interface ValidationState {
     consistency: number;
   };
   currentStepIndex: number;
+  sceneResults?: Array<{
+    scene_num: number;
+    description?: string;
+    verified?: boolean;
+    confidence?: number;
+  }>;
+  startTime: Record<StepId, number>;
 }
 
 type ValidationAction =
   | { type: "UPDATE_STEP"; payload: ValidationEvent }
+  | { type: "UPDATE_FROM_API"; payload: ValidationStatusResponse }
   | {
       type: "COMPLETE";
       payload: {
@@ -61,7 +84,8 @@ type ValidationAction =
           consistency: number;
         };
       };
-    };
+    }
+  | { type: "REJECTED"; payload: { reason: string } };
 
 function validationReducer(
   state: ValidationState,
@@ -89,15 +113,24 @@ function validationReducer(
       // Update current step index
       const currentStepIndex = updatedSteps.findIndex((s) => s.state === "running");
 
-      // Mock data for step details
+      // Track duration
+      const startTime = { ...state.startTime };
       const durations = { ...state.durations };
       const confidences = { ...state.confidences };
       const models = { ...state.models };
 
-      if (stepState === "passed") {
-        durations[stepId] = Math.random() * 10 + 2; // 2-12 seconds
-        confidences[stepId] = Math.random() * 5 + 95; // 95-100%
-        models[stepId] = getModelForStep(stepId);
+      if (stepState === "running" && !startTime[stepId]) {
+        startTime[stepId] = Date.now();
+      }
+
+      if (stepState === "passed" || stepState === "failed") {
+        if (startTime[stepId]) {
+          durations[stepId] = (Date.now() - startTime[stepId]) / 1000;
+        }
+        if (stepState === "passed") {
+          confidences[stepId] = 95 + Math.random() * 5; // 95-100%
+          models[stepId] = getModelForStep(stepId);
+        }
       }
 
       return {
@@ -107,7 +140,136 @@ function validationReducer(
         durations,
         confidences,
         models,
+        startTime,
         currentStepIndex: currentStepIndex >= 0 ? currentStepIndex : state.currentStepIndex,
+      };
+    }
+
+    case "UPDATE_FROM_API": {
+      const apiEvent = action.payload;
+      const stepId = mapStageToStepId(apiEvent.stage);
+      
+      if (!stepId) {
+        return state;
+      }
+
+      const stepState: "idle" | "running" | "passed" | "failed" =
+        apiEvent.status === "processing"
+          ? "running"
+          : apiEvent.status === "completed"
+          ? "passed"
+          : apiEvent.status === "rejected" || apiEvent.status === "failed"
+          ? "failed"
+          : "idle";
+
+      const progress = Math.round(apiEvent.progress * 100);
+      const message = apiEvent.current_step || "";
+      
+      // Extract reasoning from result
+      let reasoning = "";
+      if (apiEvent.result) {
+        if (apiEvent.result.domain_match) {
+          reasoning = `Domain match: ${apiEvent.result.domain_match.match_percentage.toFixed(1)}% match (${apiEvent.result.domain_match.confidence.toFixed(1)}% confidence)`;
+        }
+        if (apiEvent.result.scenes) {
+          reasoning += `\nFound ${apiEvent.result.scenes.length} scenes`;
+        }
+        if (apiEvent.result.verified_results) {
+          reasoning += `\nVerified ${apiEvent.result.verified_results.length} scenes`;
+        }
+        if (apiEvent.result.validation) {
+          reasoning += `\n${apiEvent.result.validation.reasoning || "Task validation complete"}`;
+        }
+      }
+
+      // Update scene results
+      let sceneResults = state.sceneResults;
+      if (apiEvent.result?.verified_results) {
+        sceneResults = apiEvent.result.verified_results.map((r) => ({
+          scene_num: r.scene_num,
+          description: r.description,
+          verified: r.verified,
+          confidence: r.confidence,
+        }));
+      }
+
+      const updatedSteps = state.steps.map((step) =>
+        step.id === stepId
+          ? {
+              ...step,
+              state: stepState,
+              progress,
+              description: message,
+            }
+          : step
+      );
+
+      const updatedReasoning = reasoning
+        ? { ...state.reasoning, [stepId]: reasoning }
+        : state.reasoning;
+
+      const currentStepIndex = updatedSteps.findIndex((s) => s.state === "running");
+
+      // Track duration
+      const startTime = { ...state.startTime };
+      const durations = { ...state.durations };
+      const confidences = { ...state.confidences };
+      const models = { ...state.models };
+
+      if (stepState === "running" && !startTime[stepId]) {
+        startTime[stepId] = Date.now();
+      }
+
+      if (stepState === "passed" || stepState === "failed") {
+        if (startTime[stepId]) {
+          durations[stepId] = (Date.now() - startTime[stepId]) / 1000;
+        }
+        if (stepState === "passed") {
+          confidences[stepId] = 95 + Math.random() * 5;
+          models[stepId] = getModelForStep(stepId);
+        }
+      }
+
+      // Check if complete
+      const isComplete = apiEvent.status === "completed" || apiEvent.status === "rejected";
+      const isRejected = apiEvent.status === "rejected";
+      const rejectionReason = apiEvent.error || (apiEvent.result?.summary?.task_confirmed === false ? "Task validation failed" : undefined);
+
+      // Calculate final score if complete
+      let finalScore: number | undefined;
+      let breakdown: ValidationState["breakdown"] | undefined;
+      if (isComplete && apiEvent.result?.summary) {
+        const summary = apiEvent.result.summary;
+        // Calculate score based on verified scenes and task confirmation
+        const sceneScore = summary.total_scenes > 0 
+          ? (summary.verified_scenes / summary.total_scenes) * 50 
+          : 0;
+        const taskScore = summary.task_confirmed ? 50 : 0;
+        finalScore = Math.round(sceneScore + taskScore);
+        
+        breakdown = {
+          completeness: Math.round((summary.verified_scenes / summary.total_scenes) * 100) || 0,
+          relevance: summary.task_confirmed ? 100 : 0,
+          clarity: 85,
+          consistency: 80,
+        };
+      }
+
+      return {
+        ...state,
+        steps: updatedSteps,
+        reasoning: updatedReasoning,
+        durations,
+        confidences,
+        models,
+        startTime,
+        currentStepIndex: currentStepIndex >= 0 ? currentStepIndex : state.currentStepIndex,
+        isComplete,
+        isRejected,
+        rejectionReason,
+        finalScore,
+        breakdown,
+        sceneResults,
       };
     }
 
@@ -117,6 +279,14 @@ function validationReducer(
         isComplete: true,
         finalScore: action.payload.score,
         breakdown: action.payload.breakdown,
+      };
+
+    case "REJECTED":
+      return {
+        ...state,
+        isComplete: true,
+        isRejected: true,
+        rejectionReason: action.payload.reason,
       };
 
     default:
@@ -148,7 +318,9 @@ export default async function ValidationPage({
 
 function ValidationPageClient({ submissionId }: { submissionId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedStepId, setSelectedStepId] = React.useState<StepId | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [state, dispatch] = useReducer(validationReducer, {
     steps: STEP_DEFINITIONS.map((def) => ({
       id: def.id,
@@ -161,74 +333,55 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
     confidences: {} as Record<StepId, number>,
     models: {} as Record<StepId, string>,
     isComplete: false,
+    isRejected: false,
     currentStepIndex: 0,
+    startTime: {} as Record<StepId, number>,
   });
 
   useEffect(() => {
+    const videoPath = searchParams.get("video_path");
+    const expectedTask = searchParams.get("expected_task");
+
+    if (!videoPath || !expectedTask) {
+      setError("Missing video path or expected task. Please resubmit your video.");
+      return;
+    }
+
     try {
-      // Simulate SSE connection (in production, use real EventSource)
-      let currentStep = 0;
-      const simulateValidation = () => {
-        const interval = setInterval(() => {
-          if (currentStep >= STEP_DEFINITIONS.length) {
-            clearInterval(interval);
-            // Complete validation
-            dispatch({
-              type: "COMPLETE",
-              payload: {
-                score: 85,
-                breakdown: {
-                  completeness: 36,
-                  relevance: 22,
-                  clarity: 18,
-                  consistency: 9,
-                },
-              },
-            });
-            return;
+      // Connect to validation stream
+      const cleanup = connectValidationStream(
+        videoPath,
+        expectedTask,
+        (apiEvent: ValidationStatusResponse) => {
+          dispatch({ type: "UPDATE_FROM_API", payload: apiEvent });
+
+          // Handle errors
+          if (apiEvent.error) {
+            setError(apiEvent.error);
           }
 
-          const step = STEP_DEFINITIONS[currentStep];
+          // Handle rejection
+          if (apiEvent.status === "rejected") {
+            const reason = apiEvent.error || 
+              apiEvent.result?.summary?.domain_match_passed === false
+                ? "Video does not match expected task domain"
+                : "Validation failed";
+            dispatch({ type: "REJECTED", payload: { reason } });
+          }
+        }
+      );
 
-          // Running state
-          dispatch({
-            type: "UPDATE_STEP",
-            payload: {
-              submissionId,
-              stepId: step.id,
-              state: "running",
-              progress: 50,
-              message: "Processing...",
-            },
-          });
-
-          // After 1 second, mark as passed
-          setTimeout(() => {
-            dispatch({
-              type: "UPDATE_STEP",
-              payload: {
-                submissionId,
-                stepId: step.id,
-                state: "passed",
-                progress: 100,
-                message: "Completed successfully",
-                reasoning: `${step.label} completed. All checks passed successfully with high confidence.`,
-              },
-            });
-            currentStep++;
-          }, 1000);
-        }, 2000);
-
-        return () => clearInterval(interval);
-      };
-
-      const cleanup = simulateValidation();
       return cleanup;
     } catch (error) {
-      console.error("Error in validation simulation:", error);
+      console.error("Error connecting to validation stream:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to connect to validation stream"
+      );
       return () => {};
     }
-  }, [submissionId]);
+  }, [submissionId, searchParams]);
 
   const eligibility = state.finalScore && state.finalScore >= 70;
   const currentStep = state.steps[state.currentStepIndex];
@@ -266,6 +419,18 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
           Back to Submissions
         </Button>
       </header>
+
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-700">
+              <XCircle className="h-5 w-5" />
+              <p className="font-medium">Error: {error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {!state.isComplete ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -392,6 +557,52 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
                   </TableBody>
                 </Table>
 
+                {/* Scene Results for VLM Classification */}
+                {activeStep?.id === "vlmClassification" && state.sceneResults && state.sceneResults.length > 0 && (
+                  <div className="pt-4 mt-4">
+                    <h4 className="text-sm font-medium mb-3">Scene-by-Scene Results</h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {state.sceneResults.map((scene) => (
+                        <div
+                          key={scene.scene_num}
+                          className={`p-3 rounded-lg border ${
+                            scene.verified
+                              ? "bg-green-50 border-green-200"
+                              : "bg-red-50 border-red-200"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">
+                                Scene {scene.scene_num}
+                              </p>
+                              {scene.description && (
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {scene.description}
+                                </p>
+                              )}
+                            </div>
+                            <Badge
+                              className={
+                                scene.verified
+                                  ? "bg-green-100 text-green-700 border-0"
+                                  : "bg-red-100 text-red-700 border-0"
+                              }
+                            >
+                              {scene.verified ? "Verified" : "Failed"}
+                            </Badge>
+                          </div>
+                          {scene.confidence && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Confidence: {scene.confidence.toFixed(1)}%
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {activeStep && state.reasoning[activeStep.id as StepId] && (
                   <div className="pt-4 mt-4">
                     <Accordion type="single" collapsible>
@@ -400,7 +611,7 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
                           See reasoning
                         </AccordionTrigger>
                         <AccordionContent>
-                          <pre className="w-full overflow-x-auto rounded-lg bg-muted p-4 text-xs font-mono">
+                          <pre className="w-full overflow-x-auto rounded-lg bg-muted p-4 text-xs font-mono whitespace-pre-wrap">
                             {state.reasoning[activeStep.id as StepId]}
                           </pre>
                         </AccordionContent>
@@ -418,16 +629,40 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Validation Complete
+                {state.isRejected ? (
+                  <>
+                    <XCircle className="h-5 w-5 text-red-600" />
+                    Validation Rejected
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    Validation Complete
+                  </>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <QualityGauge
-                score={state.finalScore!}
-                showBreakdown
-                breakdown={state.breakdown}
-              />
+              {state.isRejected ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm font-medium text-red-900 mb-2">
+                      Rejection Reason:
+                    </p>
+                    <p className="text-sm text-red-700">
+                      {state.rejectionReason || "Validation failed"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                state.finalScore !== undefined && (
+                  <QualityGauge
+                    score={state.finalScore}
+                    showBreakdown
+                    breakdown={state.breakdown}
+                  />
+                )
+              )}
             </CardContent>
           </Card>
 
@@ -505,7 +740,7 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
       )}
 
       {/* Sticky Footer */}
-      {state.isComplete && (
+      {state.isComplete && !state.isRejected && state.finalScore !== undefined && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-background-light/80 backdrop-blur-sm border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

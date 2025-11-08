@@ -155,37 +155,44 @@ npx shadcn@latest add [component-name]
 4. Write unit tests in `src/tests/unit/components/`
 5. Add e2e tests if needed
 
+## 🔄 API Configuration
+
+The application connects to a video validation API backend. Configure the API URL using environment variables:
+
+1. **Create `.env.local`** (copy from `.env.local.example`):
+   ```bash
+   NEXT_PUBLIC_API_URL=http://localhost:8000
+   ```
+
+2. **API Endpoints**:
+   - `/upload-video` - Upload video file
+   - `/validate-video/stream` - Stream validation progress via SSE
+   - `/validate-video` - Start validation job (non-streaming)
+   - `/validation-status/{job_id}` - Get validation status
+
+3. **API Client** (`src/lib/api/client.ts`):
+   - `uploadVideo(file: File)` - Upload video to backend
+   - `connectValidationStream(videoPath, expectedTask, onEvent)` - Connect to SSE stream
+   - `startValidation(videoPath, expectedTask)` - Start validation job
+   - `getValidationStatus(jobId)` - Get validation status
+
+4. **Validation Flow**:
+   - User uploads video on bounty detail page
+   - Video is uploaded to `/upload-video` endpoint
+   - Validation is started with `/validate-video/stream` (SSE)
+   - Real-time progress updates are displayed on validation page
+   - Scene-by-scene results are shown during VLM classification
+   - Final LLM evaluation result (confirmed/rejected) is displayed
+
 ## 🔄 Switching from Mocks to Real APIs
 
-The application currently uses MSW for API mocking. To integrate real APIs:
+The application now uses real API endpoints. To use mocks instead:
 
-1. **Update API Client** (`src/lib/api/client.ts`):
-   ```typescript
-   export async function createSubmission(bountyId: string, videoFile: File) {
-     const formData = new FormData();
-     formData.append("bountyId", bountyId);
-     formData.append("video", videoFile);
+1. **Enable MSW** (for development):
+   - Uncomment MSW initialization in pages
+   - Update API client to use mock endpoints
 
-     const response = await fetch("https://your-api.com/api/submissions", {
-       method: "POST",
-       body: formData,
-     });
-
-     return response.json();
-   }
-   ```
-
-2. **Implement SSE** (for validation streaming):
-   ```typescript
-   const eventSource = new EventSource(`https://your-api.com/api/validation/${id}/stream`);
-   
-   eventSource.onmessage = (event) => {
-     const data = JSON.parse(event.data);
-     // Dispatch validation updates
-   };
-   ```
-
-3. **Remove MSW** (for production):
+2. **Remove MSW** (for production):
    - Delete or disable `src/lib/api/mock-handlers.ts`
    - Remove MSW initialization from pages
 

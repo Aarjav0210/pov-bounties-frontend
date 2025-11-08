@@ -69,7 +69,7 @@ export default function DashboardPage() {
           <h1 className="leading-tight tracking-tight">
             <span className="text-gray-900 font-bold text-2xl">Welcome back,</span>
             <br />
-            <span className="text-red-500 font-black text-5xl inline-block mt-2">Alex!</span>
+            <span className="text-red-500 font-black text-5xl inline-block mt-2">Here's a preview [coming soon...]</span>
           </h1>
           <p className="text-gray-600 text-base font-normal leading-normal">
             Here's a summary of your creator activity.

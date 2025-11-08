@@ -20,9 +20,9 @@ const userNavigation = [
   { name: "Dashboard", href: "/dashboard" },
 ];
 
-const enterpriseNavigation = [
-  { name: "Dashboard", href: "/enterprise/dashboard" },
-  { name: "New Dataset", href: "/enterprise/new" },
+// Enterprise navigation disabled - only home page accessible
+const enterpriseNavigation: { name: string; href: string }[] = [
+  // Dashboard and New Dataset routes are disabled but files remain
 ];
 
 interface AppShellProps {

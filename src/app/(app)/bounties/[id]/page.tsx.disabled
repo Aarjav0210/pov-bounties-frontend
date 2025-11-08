@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { uploadVideo, startValidation } from "@/lib/api/client";
 
 // Mock bounty data
 const mockBounty = {
@@ -64,53 +65,76 @@ export default function BountyDetailPage({ params }: { params: { id: string } })
   const router = useRouter();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileName, setFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [activeTab, setActiveTab] = useState("requirements");
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       setFileName(file.name);
-      setIsUploading(true);
-      
-      // Simulate upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 5;
-        setUploadProgress(progress);
-        if (progress >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-        }
-      }, 100);
+      setUploadProgress(0);
+      setError(null);
     }
   };
 
   const handleSubmit = async () => {
-    if (!fileName || !confirmed) {
+    if (!selectedFile || !confirmed) {
       return;
     }
 
     setIsSubmitting(true);
+    setError(null);
 
     try {
-      // Mock API call
-      const response = await fetch("/api/submissions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bountyId: params.id }),
-      });
+      // Upload video
+      setIsUploading(true);
+      setUploadProgress(0);
 
-      const data = await response.json();
-      
-      // Navigate to validation page
-      router.push(`/validate/${data.submissionId}`);
+      // Simulate upload progress (since we can't track actual upload progress easily)
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      const uploadResult = await uploadVideo(selectedFile);
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      setIsUploading(false);
+
+      // Start validation
+      const expectedTask = mockBounty.description || mockBounty.title;
+      const validationResult = await startValidation(
+        uploadResult.path,
+        expectedTask
+      );
+
+      // Navigate to validation page with job_id, video path, and expected task
+      router.push(
+        `/validate/${validationResult.job_id}?video_path=${encodeURIComponent(
+          uploadResult.path
+        )}&expected_task=${encodeURIComponent(expectedTask)}`
+      );
     } catch (error) {
       console.error("Submission failed:", error);
-      alert("Failed to submit. Please try again.");
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to submit. Please try again."
+      );
       setIsSubmitting(false);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -285,6 +309,7 @@ export default function BountyDetailPage({ params }: { params: { id: string } })
             </p>
             <p className="text-xs text-gray-600">MP4, MOV, or AVI (MAX. 500MB)</p>
             <input
+              ref={fileInputRef}
               id="file-upload"
               type="file"
               className="hidden"
@@ -309,6 +334,13 @@ export default function BountyDetailPage({ params }: { params: { id: string } })
             </div>
           )}
 
+          {/* Error Message */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
           {/* Confirmation Checkbox */}
           <div className="flex items-start mt-6">
             <Checkbox
@@ -326,9 +358,13 @@ export default function BountyDetailPage({ params }: { params: { id: string } })
           <Button
             className="w-full mt-6 h-12 text-base"
             onClick={handleSubmit}
-            disabled={!fileName || uploadProgress < 100 || !confirmed || isSubmitting}
+            disabled={!selectedFile || (isUploading && uploadProgress < 100) || !confirmed || isSubmitting}
           >
-            {isSubmitting ? "Submitting..." : "Submit for validation"}
+            {isSubmitting
+              ? isUploading
+                ? "Uploading..."
+                : "Starting validation..."
+              : "Submit for validation"}
           </Button>
         </div>
       </div>
