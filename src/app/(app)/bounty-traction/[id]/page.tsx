@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { submitBountyVideoDirectS3 } from "@/lib/api/client";
-import { compressVideo, shouldCompressVideo, formatFileSize } from "@/lib/videoCompression";
+import { formatFileSize } from "@/lib/videoCompression";
 
 // Bounty data mapped by ID
 const bountyData: Record<string, {
@@ -142,12 +142,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
   const [activeTab, setActiveTab] = useState("requirements");
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  
-  // Compression state
-  const [isCompressing, setIsCompressing] = useState(false);
-  const [compressionProgress, setCompressionProgress] = useState(0);
   const [originalSize, setOriginalSize] = useState(0);
-  const [needsCompression, setNeedsCompression] = useState(false);
   
   // Form fields
   const [name, setName] = useState("");
@@ -175,16 +170,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
       setFileName(file.name);
       setOriginalSize(file.size);
       setUploadProgress(0);
-      setCompressionProgress(0);
       setError(null);
-      
-      // Check if compression is recommended
-      const shouldCompress = shouldCompressVideo(file);
-      setNeedsCompression(shouldCompress);
-      
-      if (shouldCompress) {
-        console.log(`📊 Large file detected (${formatFileSize(file.size)}). Compression recommended.`);
-      }
     }
   };
 
@@ -206,35 +192,8 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
     setError(null);
 
     try {
-      let fileToUpload = selectedFile;
-      
-      // Compress video if it's large (>15 MB)
-      if (needsCompression) {
-        console.log("🗜️ Compressing video...");
-        setIsCompressing(true);
-        setCompressionProgress(0);
-        
-        try {
-          fileToUpload = await compressVideo(selectedFile, {
-            maxWidth: 1920,
-            maxHeight: 1080,
-            videoBitrate: '1M',
-            crf: 28,
-            onProgress: (progress) => {
-              setCompressionProgress(progress);
-            }
-          });
-          
-          console.log(`✅ Compression complete! ${formatFileSize(selectedFile.size)} → ${formatFileSize(fileToUpload.size)}`);
-          setIsCompressing(false);
-        } catch (compressionError) {
-          console.error("⚠️ Compression failed, uploading original file:", compressionError);
-          setIsCompressing(false);
-          // Continue with original file if compression fails
-          fileToUpload = selectedFile;
-        }
-      }
-      
+      // Upload original file directly (compression disabled for speed)
+      const fileToUpload = selectedFile;
       console.log("🚀 Starting direct S3 upload...");
       
       // Submit video with user info using direct S3 upload (bypasses backend timeout)
@@ -261,9 +220,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
           : "Failed to submit. Please try again."
       );
       setIsSubmitting(false);
-      setIsCompressing(false);
       setUploadProgress(0);
-      setCompressionProgress(0);
     }
   };
 
@@ -586,40 +543,8 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
                 <p className="text-gray-600">{formatFileSize(originalSize)}</p>
               </div>
               
-              {/* Compression notice */}
-              {needsCompression && !isSubmitting && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <span className="material-symbols-outlined text-blue-600 text-xl">info</span>
-                    <div className="text-sm text-blue-800">
-                      <p className="font-medium">Large file detected</p>
-                      <p className="text-xs text-blue-600 mt-1">
-                        We'll compress your video before uploading to save time (typically 50-70% smaller)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Compression Progress */}
-              {isCompressing && (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <p className="text-gray-700 font-medium">🗜️ Compressing video...</p>
-                    <p className="text-gray-600">{compressionProgress}%</p>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${compressionProgress}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-500">This may take a minute...</p>
-                </div>
-              )}
-              
               {/* Upload Progress */}
-              {uploadProgress > 0 && !isCompressing && (
+              {uploadProgress > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm">
                     <p className="text-gray-700 font-medium">📤 Uploading to S3...</p>
@@ -662,11 +587,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
             onClick={handleSubmit}
             disabled={!selectedFile || !name || !email || !venmoId || !confirmed || isSubmitting}
           >
-            {isCompressing 
-              ? "Compressing..." 
-              : isSubmitting 
-                ? "Uploading..." 
-                : "Submit Video"}
+            {isSubmitting ? "Uploading..." : "Submit Video"}
           </Button>
         </div>
       </div>

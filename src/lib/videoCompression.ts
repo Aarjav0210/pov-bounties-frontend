@@ -143,8 +143,8 @@ export async function compressVideo(
 }
 
 export function shouldCompressVideo(file: File): boolean {
-  const sizeMB = file.size / 1024 / 1024;
-  return sizeMB > 15;
+  // Compression disabled - direct upload is faster
+  return false;
 }
 
 export function estimateCompressedSize(file: File): number {
