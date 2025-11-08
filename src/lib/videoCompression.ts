@@ -118,7 +118,8 @@ export async function compressVideo(
     const data = await ffmpeg.readFile(outputFileName);
     if (onProgress) onProgress(95);
 
-    const compressedBlob = new Blob([data], { type: 'video/mp4' });
+    // Convert Uint8Array to proper format for Blob
+    const compressedBlob = new Blob([new Uint8Array(data as Uint8Array)], { type: 'video/mp4' });
     const compressedFile = new File(
       [compressedBlob],
       file.name.replace(getFileExtension(file.name), '.mp4'),
