@@ -63,6 +63,7 @@ export interface CompressionOptions {
   maxHeight?: number;
   videoBitrate?: string;
   crf?: number;
+  preset?: 'ultrafast' | 'veryfast' | 'fast' | 'medium' | 'slow';
   onProgress?: (progress: number) => void;
 }
 
@@ -74,10 +75,11 @@ export async function compressVideo(
   options: CompressionOptions = {}
 ): Promise<File> {
   const {
-    maxWidth = 1920,
-    maxHeight = 1080,
-    videoBitrate = '1M',
+    maxWidth = 512,
+    maxHeight = 512,
+    videoBitrate = '500k',
     crf = 28,
+    preset = 'veryfast',
     onProgress
   } = options;
 
@@ -98,13 +100,13 @@ export async function compressVideo(
 
     const ffmpegArgs = [
       '-i', inputFileName,
-      '-vf', `scale='min(${maxWidth},iw)':'min(${maxHeight},ih)':force_original_aspect_ratio=decrease`,
+      '-vf', `scale=${maxWidth}:${maxHeight}:force_original_aspect_ratio=decrease,pad=${maxWidth}:${maxHeight}:(ow-iw)/2:(oh-ih)/2`,
       '-c:v', 'libx264',
       '-crf', crf.toString(),
-      '-preset', 'medium',
+      '-preset', preset,
       '-b:v', videoBitrate,
       '-c:a', 'aac',
-      '-b:a', '128k',
+      '-b:a', '96k',
       '-movflags', '+faststart',
       '-y',
       outputFileName
@@ -143,8 +145,8 @@ export async function compressVideo(
 }
 
 export function shouldCompressVideo(file: File): boolean {
-  // Compression disabled - direct upload is faster
-  return false;
+  // Always compress to 512x512 for VLM processing
+  return true;
 }
 
 export function estimateCompressedSize(file: File): number {
