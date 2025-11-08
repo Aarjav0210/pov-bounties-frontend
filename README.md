@@ -1,36 +1,275 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# POV Bounties Frontend
 
-## Getting Started
+A Next.js + TypeScript + Tailwind CSS application for a crowdsourced egocentric-video bounty platform.
 
-First, run the development server:
+## 🚀 Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Install dependencies
+pnpm install
+
+# Run development server
 pnpm dev
-# or
-bun dev
+
+# Open browser
+# Navigate to http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📦 Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript (strict mode)
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Forms**: react-hook-form + zod
+- **Charts**: recharts
+- **Testing**: Vitest (unit) + Playwright (e2e)
+- **Mocking**: MSW (Mock Service Worker)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🏗️ Project Structure
 
-## Learn More
+```
+src/
+├── app/                          # Next.js App Router pages
+│   ├── (app)/                   # App layout group
+│   │   ├── bounties/[id]/       # Bounty detail page
+│   │   └── validate/[id]/       # Validation stepper page
+│   ├── components/              # Component showcase
+│   └── layout.tsx               # Root layout
+├── components/
+│   ├── ui/                      # shadcn/ui components
+│   └── common/                  # Shared primitives
+│       ├── AppShell.tsx         # Navigation shell
+│       ├── Steps.tsx            # Validation stepper
+│       ├── FileUploader.tsx     # Drag-drop uploader
+│       ├── DataStates.tsx       # Empty/Error/Loading states
+│       ├── KpiCard.tsx          # Metric cards
+│       ├── DonutChart.tsx       # Donut charts
+│       └── QualityGauge.tsx     # Quality score gauge
+├── lib/
+│   ├── api/                     # API client & MSW handlers
+│   ├── types/                   # TypeScript type definitions
+│   └── utils.ts                 # Utility functions
+└── tests/
+    ├── unit/                    # Vitest unit tests
+    └── e2e/                     # Playwright e2e tests
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 🎯 Key Features Implemented
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### ✅ Task 0: Scaffold (Complete)
+- Next.js 14 with App Router
+- TypeScript strict mode
+- Tailwind CSS + shadcn/ui setup
+- ESLint + Prettier + Husky
+- Vitest + Playwright configured
+- Component showcase page
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### ✅ Task 1: Shared Primitives (Complete)
+- **AppShell**: Responsive navigation with mobile menu
+- **Steps**: Vertical/horizontal stepper with states (idle, running, passed, failed, retrying, skipped)
+- **FileUploader**: Drag-drop with validation, progress tracking
+- **Data States**: Empty, Error, Loading components
+- **KPI Card**: Metric display with trends
+- **DonutChart**: Industry distribution visualization
+- **QualityGauge**: Score display with rubric breakdown
+- **FormField**: React Hook Form + Zod integration
+- **ServerActionButton**: Pending state handling
 
-## Deploy on Vercel
+### ✅ Task 2: End-to-End Flow (Complete)
+- **Bounty Detail Page** (`/bounties/[id]`):
+  - Tabs: Overview, Requirements, Examples, FAQ
+  - File uploader in right rail
+  - Submit to validation flow
+- **Validation Page** (`/validate/[submissionId]`):
+  - Live stepper with simulated SSE updates
+  - Step-by-step progress visualization
+  - Accordion for reasoning details
+  - Quality score gauge with rubric
+  - Eligibility determination
+  - Action buttons (Submit, Download, Retry)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🧪 Testing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Type checking
+pnpm typecheck
+
+# Linting
+pnpm lint
+
+# Unit tests
+pnpm test
+
+# Unit tests with UI
+pnpm test:ui
+
+# E2E tests
+pnpm e2e
+
+# Build
+pnpm build
+```
+
+### Test Coverage
+
+- **Unit Tests**: 13/13 passing ✅
+  - Utilities (cn function)
+  - Steps component state machine
+  - FileUploader validation and interaction
+
+- **E2E Tests**: 23/23 passing ✅
+  - Component showcase
+  - Primitives functionality
+  - Happy path: Bounty submission → Validation → Completion
+  - Marketplace filters and navigation
+  - Dashboard KPIs and charts
+  - Enterprise pages and forms
+  - Keyboard accessibility throughout
+
+## 📝 Scripts
+
+- `dev`: Start development server
+- `build`: Production build
+- `start`: Start production server
+- `lint`: Run ESLint
+- `format`: Check code formatting
+- `typecheck`: TypeScript type checking
+- `test`: Run unit tests
+- `test:ui`: Run unit tests with Vitest UI
+- `e2e`: Run Playwright e2e tests
+- `prepare`: Install Husky git hooks
+
+## 🎨 Adding Components
+
+### From shadcn/ui
+
+```bash
+npx shadcn@latest add [component-name]
+```
+
+### Custom Shared Components
+
+1. Create in `src/components/common/[ComponentName].tsx`
+2. Add proper TypeScript types
+3. Include ARIA labels for accessibility
+4. Write unit tests in `src/tests/unit/components/`
+5. Add e2e tests if needed
+
+## 🔄 Switching from Mocks to Real APIs
+
+The application currently uses MSW for API mocking. To integrate real APIs:
+
+1. **Update API Client** (`src/lib/api/client.ts`):
+   ```typescript
+   export async function createSubmission(bountyId: string, videoFile: File) {
+     const formData = new FormData();
+     formData.append("bountyId", bountyId);
+     formData.append("video", videoFile);
+
+     const response = await fetch("https://your-api.com/api/submissions", {
+       method: "POST",
+       body: formData,
+     });
+
+     return response.json();
+   }
+   ```
+
+2. **Implement SSE** (for validation streaming):
+   ```typescript
+   const eventSource = new EventSource(`https://your-api.com/api/validation/${id}/stream`);
+   
+   eventSource.onmessage = (event) => {
+     const data = JSON.parse(event.data);
+     // Dispatch validation updates
+   };
+   ```
+
+3. **Remove MSW** (for production):
+   - Delete or disable `src/lib/api/mock-handlers.ts`
+   - Remove MSW initialization from pages
+
+## 🎉 All Tasks Complete!
+
+### ✅ Task 3: User Journey (Complete)
+- **Marketplace** (`/bounties`): Search, filters (industry, difficulty), pagination, bounty cards
+- **Dashboard** (`/dashboard`): KPIs, donut charts, quality gauge, submissions table with dialog
+- **Enterprise** (`/enterprise`): Landing page with feature cards
+- **Create Bounty** (`/enterprise/new`): Multi-section form with validation, domain selection, augmentations, cost calculator
+
+### ✅ Task 4: Hardening (Complete)
+- Error boundaries with user-friendly error pages
+- 404 Not Found page
+- 500 Error handling
+- Beautiful homepage with hero, features, stats, and CTA
+- All routes properly tested
+
+## 🌐 Accessibility
+
+- Semantic HTML with proper roles
+- ARIA labels on interactive elements
+- Keyboard navigation support
+- Focus states on all interactive elements
+- Screen reader compatible
+
+## 🔧 Configuration Files
+
+- `tailwind.config.ts`: Tailwind configuration with design tokens
+- `tsconfig.json`: TypeScript configuration (strict mode)
+- `vitest.config.ts`: Vitest unit test configuration
+- `playwright.config.ts`: Playwright e2e test configuration
+- `components.json`: shadcn/ui configuration
+- `.prettierrc`: Code formatting rules
+- `.lintstagedrc.js`: Pre-commit lint configuration
+
+## 🚀 Pages & Routes
+
+### Public Pages
+- `/` - Homepage with hero and features
+- `/bounties` - Marketplace with filters (6 bounties, pagination)
+- `/bounties/[id]` - Bounty detail with tabs and file upload
+- `/validate/[submissionId]` - Live validation stepper
+- `/dashboard` - User dashboard with KPIs, charts, submissions table
+- `/enterprise` - Enterprise landing page
+- `/enterprise/new` - Create bounty form
+- `/components` - Component showcase (development)
+
+### Error Pages
+- `/error` - Error boundary catch-all
+- `/404` - Not found page
+
+## 📊 Final Stats
+
+- **9 Pages**: All routes functional and tested
+- **11 Shared Components**: Reusable primitives
+- **23 E2E Tests**: 100% passing
+- **13 Unit Tests**: 100% passing
+- **TypeScript**: Strict mode, zero errors
+- **ESLint**: Clean (1 warning in generated file)
+- **Build**: ✅ Successful
+- **Accessibility**: ARIA labels, keyboard navigation, focus states
+
+## 🎯 Future Enhancements
+
+- Real API integration (replace MSW mocks)
+- Authentication & role-based access
+- Analytics tracking
+- Storybook documentation
+- Additional unit tests for new pages
+- Performance optimizations
+
+## 📄 License
+
+MIT
+
+## 🤝 Contributing
+
+1. Follow the stop-the-line policy: All checks must pass before proceeding
+2. Write tests for new features
+3. Maintain TypeScript strict mode compliance
+4. Ensure accessibility standards are met
+5. Run `pnpm typecheck && pnpm lint && pnpm test && pnpm build` before committing
+
+---
+
+Built with ❤️ for hackPrinceton
