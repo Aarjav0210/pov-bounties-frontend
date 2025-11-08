@@ -14,48 +14,45 @@ const mockBounty = {
   description:
     "We're looking for first-person video footage captured while walking through warehouse environments. The video should showcase typical warehouse navigation scenarios including narrow aisles, forklifts, pallets, and inventory shelving.",
   requirements: [
-    "Video must be shot from first-person (egocentric) perspective",
-    "Minimum 5 minutes of continuous footage",
-    "Must be captured in an active warehouse environment",
-    "Clear visibility of navigation paths, obstacles, and inventory",
-    "1080p minimum resolution, 30fps",
-    "Audio recording required (ambient warehouse sounds)",
+    "Video must contain unobstructed recordings of your hands",
+    "Video must clearly show you successfully completed the tasks",
+    "Video must have decent lighting and video quality",
   ],
   examples: [
-    "Example 1: Walking through narrow warehouse aisles with high shelving on both sides",
-    "Example 2: Navigating around forklifts and pallet jacks in an active work zone",
-    "Example 3: Moving between different sections of a warehouse facility",
+    "Task Example 1: Walking through narrow warehouse aisles with high shelving on both sides",
+    "Task Example 2 - TaskNavigating around forklifts and pallet jacks in an active work zone",
+    "Task Example 3: Moving between different sections of a warehouse facility",
   ],
   faq: [
     {
       question: "What type of camera should I use?",
-      answer: "Any device that can record at 1080p 30fps is acceptable. This includes smartphones, GoPros, or head-mounted cameras.",
+      answer: "Anything that gets the job done. Your phone, a GoPro, or anything that can record at atleast 30fps is preferred.",
     },
     {
-      question: "Do I need permission from the warehouse?",
-      answer: "Yes, you must have explicit permission from the warehouse owner or manager before recording. We cannot accept submissions without proper authorization.",
+      question: "Do I need permission to record in public?",
+      answer: "Check with your state laws. Our security system automatically rejects videos that have other peoples in them not participating in the task.",
     },
     {
       question: "Can I edit the video before submission?",
-      answer: "No, please submit raw, unedited footage. Our validation pipeline needs to analyze the original video data.",
+      answer: "We need to see a full uninterrupted competion of your task. Our validation pipeline needs to analyze the original video data.",
     },
   ],
   validationSteps: [
     {
       title: "Domain Check",
-      description: "Verifies video is egocentric and in a warehouse.",
+      description: "Verifies your video is of the requested task",
     },
     {
-      title: "Scene Parsing",
-      description: "Ensures scene complexity meets training criteria.",
+      title: "Task Breakdown",
+      description: "Breaks your video down into its component tasks",
     },
     {
-      title: "Audio Analysis",
-      description: "Checks for clear, usable audio without copyrighted material.",
+      title: "Quality Scoring",
+      description: "Scores your video based on what how well it shows you completing the task",
     },
     {
-      title: "Final Review",
-      description: "Human review for quality assurance.",
+      title: "Payday",
+      description: "You get paid. The higher your quality score the more you earn.",
     },
   ],
 };

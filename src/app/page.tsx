@@ -198,7 +198,7 @@ export default function Home() {
               </div>
             </div>
             <p className="mt-4 text-center text-sm text-gray-600 lg:mt-0 lg:text-right">
-              © 2024 Pepper. All rights reserved.
+              © 2025 Pepper. All rights reserved.
             </p>
           </div>
         </div>
