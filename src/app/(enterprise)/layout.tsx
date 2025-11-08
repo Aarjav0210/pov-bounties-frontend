@@ -4,3 +4,4 @@ export default function EnterpriseLayout({ children }: { children: React.ReactNo
   return <AppShell>{children}</AppShell>;
 }
 
+
