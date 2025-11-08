@@ -127,31 +127,13 @@ const bountyData: Record<string, {
 
 export default function BountyTractionPage({ params }: { params: Promise<{ id: string }> }) {
   // Unwrap params Promise
-  let id: string;
-  try {
-    const unwrapped = use(params);
-    id = unwrapped.id;
-  } catch (error) {
-    console.error("Error unwrapping params:", error);
-    id = "1";
-  }
+  const { id } = use(params);
   
   // Get bounty data
   const bountyId = id || "1";
   const bounty = bountyData[bountyId];
   
-  // If bounty doesn't exist, show as disabled
-  if (!bounty) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center">
-        <h1 className="text-3xl font-black text-gray-900 mb-4">Bounty Not Found</h1>
-        <Button onClick={() => window.location.href = "/bounties"}>Back to Marketplace</Button>
-      </div>
-    );
-  }
-  
-  const isDisabled = bounty.disabled;
-  
+  // All hooks must be called before any conditional returns
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileName, setFileName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -173,6 +155,18 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
   const [venmoId, setVenmoId] = useState("");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // If bounty doesn't exist, show as disabled
+  if (!bounty) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center">
+        <h1 className="text-3xl font-black text-gray-900 mb-4">Bounty Not Found</h1>
+        <Button onClick={() => window.location.href = "/bounties"}>Back to Marketplace</Button>
+      </div>
+    );
+  }
+  
+  const isDisabled = bounty.disabled;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
