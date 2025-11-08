@@ -156,7 +156,108 @@ export async function getValidationStatus(
 }
 
 /**
- * Submit a bounty video with user information (no validation)
+ * Direct S3 upload flow (bypasses backend for file transfer)
+ * Prevents timeouts on large files and mobile uploads
+ */
+export async function submitBountyVideoDirectS3(
+  videoFile: File,
+  name: string,
+  email: string,
+  venmoId: string,
+  onProgress?: (progress: number) => void
+): Promise<{ message: string; file_id: string; s3_url?: string }> {
+  console.log("📡 Starting direct S3 upload flow...");
+  
+  // Step 1: Get presigned URL from backend
+  console.log("1️⃣ Requesting presigned URL...");
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("email", email);
+  formData.append("venmo_id", venmoId);
+  formData.append("filename", videoFile.name);
+  formData.append("content_type", videoFile.type || "video/mp4");
+
+  const urlResponse = await fetch(API_ENDPOINTS.GENERATE_UPLOAD_URL, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!urlResponse.ok) {
+    const errorText = await urlResponse.text();
+    throw new Error(
+      `Failed to generate upload URL: ${urlResponse.status} ${errorText}`
+    );
+  }
+
+  const { upload_url, file_id, s3_filename } = await urlResponse.json();
+  console.log("✅ Presigned URL received:", s3_filename);
+
+  // Step 2: Upload directly to S3 using presigned URL
+  console.log("2️⃣ Uploading to S3...");
+  
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    // Track upload progress
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable && onProgress) {
+        const progress = Math.round((e.loaded / e.total) * 100);
+        console.log(`📤 Upload progress: ${progress}%`);
+        onProgress(progress);
+      }
+    });
+
+    xhr.addEventListener("load", async () => {
+      if (xhr.status === 200) {
+        console.log("✅ S3 upload complete!");
+        
+        // Step 3: Confirm upload with backend
+        console.log("3️⃣ Confirming upload with backend...");
+        try {
+          const confirmFormData = new FormData();
+          confirmFormData.append("file_id", file_id);
+          
+          const confirmResponse = await fetch(API_ENDPOINTS.CONFIRM_UPLOAD, {
+            method: "POST",
+            body: confirmFormData,
+          });
+
+          if (!confirmResponse.ok) {
+            throw new Error("Failed to confirm upload");
+          }
+
+          const result = await confirmResponse.json();
+          console.log("✅ Upload confirmed!");
+          
+          resolve({
+            message: "Video uploaded successfully",
+            file_id: file_id,
+            s3_url: `s3://${s3_filename}`,
+          });
+        } catch (error) {
+          console.error("❌ Confirmation failed:", error);
+          reject(error);
+        }
+      } else {
+        console.error("❌ S3 upload failed:", xhr.status);
+        reject(new Error(`S3 upload failed: ${xhr.status}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      console.error("❌ Network error during S3 upload");
+      reject(new Error("Network error during upload"));
+    });
+
+    xhr.open("PUT", upload_url);
+    xhr.setRequestHeader("Content-Type", videoFile.type || "video/mp4");
+    xhr.send(videoFile);
+  });
+}
+
+/**
+ * LEGACY: Submit a bounty video with user information (no validation)
+ * Uploads through backend - use submitBountyVideoDirectS3 for better performance
  * Uploads to S3 with VenmoID as filename
  */
 export async function submitBountyVideo(

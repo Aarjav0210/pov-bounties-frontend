@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { submitBountyVideo } from "@/lib/api/client";
+import { submitBountyVideoDirectS3 } from "@/lib/api/client";
 
 // Bounty data mapped by ID
 const bountyData: Record<string, {
@@ -125,24 +125,19 @@ const bountyData: Record<string, {
 };
 
 export default function BountyTractionPage({ params }: { params: Promise<{ id: string }> }) {
-  console.log("🎯 Component starting to render...");
-  
   // Unwrap params Promise
   let id: string;
   try {
     const unwrapped = use(params);
     id = unwrapped.id;
-    console.log("✅ Params unwrapped successfully, ID:", id);
   } catch (error) {
-    console.error("❌ Error unwrapping params:", error);
+    console.error("Error unwrapping params:", error);
     id = "1";
   }
   
   // Get bounty data
   const bountyId = id || "1";
   const bounty = bountyData[bountyId];
-  
-  console.log("📦 Bounty data loaded:", bounty?.title);
   
   // If bounty doesn't exist, show as disabled
   if (!bounty) {
@@ -200,27 +195,21 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
     setError(null);
 
     try {
-      // Simulate upload progress
-      setUploadProgress(0);
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      console.log("🚀 Starting API call to submitBountyVideo...");
+      console.log("🚀 Starting direct S3 upload...");
       
-      // Submit video with user info
-      const result = await submitBountyVideo(selectedFile, name, email, venmoId);
+      // Submit video with user info using direct S3 upload (bypasses backend timeout)
+      const result = await submitBountyVideoDirectS3(
+        selectedFile, 
+        name, 
+        email, 
+        venmoId,
+        (progress) => {
+          // Real-time progress updates from S3 upload
+          setUploadProgress(progress);
+        }
+      );
       
-      console.log("✅ API call successful:", result);
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
+      console.log("✅ Upload successful:", result);
       
       // Show success page
       setShowSuccess(true);
@@ -585,19 +574,11 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
           {/* Submit Button */}
           <Button
             className="w-full mt-6 h-12 text-base"
-            onClick={() => {
-              console.log("🖱️ Button clicked!");
-              handleSubmit();
-            }}
+            onClick={handleSubmit}
             disabled={!selectedFile || !name || !email || !venmoId || !confirmed || isSubmitting}
           >
             {isSubmitting ? "Uploading..." : "Submit Video"}
           </Button>
-          
-          {/* Debug: Show button state */}
-          <div className="text-xs text-gray-500 mt-2">
-            Debug: File={selectedFile ? '✓' : '✗'} Name={name ? '✓' : '✗'} Email={email ? '✓' : '✗'} Venmo={venmoId ? '✓' : '✗'} Confirmed={confirmed ? '✓' : '✗'}
-          </div>
         </div>
       </div>
     </div>
