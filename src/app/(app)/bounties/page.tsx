@@ -8,15 +8,15 @@ import { Button } from "@/components/ui/button";
 const mockBounties = [
   {
     id: "1",
-    title: "Assemble a Bookshelf",
-    company: "RoboCorp",
-    reward: 150,
-    industry: "Assembly",
+    title: "Do a bottle flip",
+    company: "PepperTech",
+    reward: 67,
+    industry: "Sports",
     difficulty: "Easy",
-    duration: "25 mins",
-    dueDate: "14 days",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop",
-    tags: ["#assembly", "#furniture"],
+    duration: "30 seconds",
+    dueDate: "4 hours",
+    image: "https://images.unsplash.com/photo-1561041695-d2fadf9f318c?w=400&h=300&fit=crop",
+    tags: ["#sports", "#bottleflip", "#hack"],
   },
   {
     id: "2",

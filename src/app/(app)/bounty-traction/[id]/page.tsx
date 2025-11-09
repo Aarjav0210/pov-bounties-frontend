@@ -21,35 +21,24 @@ const bountyData: Record<string, {
 }> = {
   "1": {
     disabled: false,
-    title: "POV Video: Assembling a Bookshelf",
+    title: "POV Video: Do a bottle flip",
     company: "RoboCorp",
-    reward: 150,
-    description: "We're looking for first-person POV video footage of someone assembling a bookshelf. The video should capture the entire assembly process from unpacking to completion, showing hands performing the actions.",
+    reward: 67,
+    description: "We're looking for video footage of someone doing as many bottle flips as they can. The video should capture the entire process from picking up the bottle to the flip, showing hands performing the actions. The winner of this challenge will receive a $67 bounty.",
     requirements: [
       "Video must be shot from first-person (POV) perspective",
-      "Minimum 10 minutes of continuous footage",
-      "Must show complete assembly process",
-      "Clear visibility of hands, tools, and parts",
-      "720p minimum resolution, 24fps or higher",
-      "Good lighting - indoor environment",
+      "Maximum 30 seconds of continuous footage",
+      "Must show complete bottle flip process",
+      "Clear visibility of hands, bottle, and floor",
+      "480p minimum resolution, 24fps or higher"
     ],
     examples: [
-      "Example 1: POV of unpacking and organizing parts",
-      "Example 2: POV of using tools to assemble",
-      "Example 3: POV of final adjustments and completion",
+      "No examples yet",
     ],
     faq: [
       {
-        question: "What type of camera should I use?",
-        answer: "Any device that can record at 720p or higher. Smartphones, GoPros, or head-mounted cameras work well.",
-      },
-      {
-        question: "What kind of bookshelf?",
-        answer: "Any standard bookshelf assembly works - IKEA style or similar flat-pack furniture.",
-      },
-      {
-        question: "Can I edit the video?",
-        answer: "Please submit raw, unedited footage. Light trimming to start/end is okay.",
+        question: "Can I keep going after a failed attempt?",
+        answer: "Yes, you can keep going after a failed attempt. We will count all successful flips.",
       },
     ],
   },
