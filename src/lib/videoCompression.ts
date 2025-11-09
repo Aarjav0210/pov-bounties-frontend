@@ -146,7 +146,8 @@ export async function compressVideo(
 
 export function shouldCompressVideo(file: File): boolean {
   // Always compress to 512x512 for VLM processing
-  return true;
+//   return true;
+    return file.size > 50 * 1024 * 1024;
 }
 
 export function estimateCompressedSize(file: File): number {
