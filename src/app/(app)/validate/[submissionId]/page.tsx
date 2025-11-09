@@ -169,7 +169,12 @@ function validationReducer(
       let reasoning = "";
       if (apiEvent.result) {
         if (apiEvent.result.domain_match) {
-          reasoning = `Domain match: ${apiEvent.result.domain_match.match_percentage.toFixed(1)}% match (${apiEvent.result.domain_match.confidence.toFixed(1)}% confidence)`;
+          const matchPercentage = typeof apiEvent.result.domain_match.match_percentage === 'number' 
+            ? (apiEvent.result.domain_match.match_percentage * 100).toFixed(1)
+            : String(apiEvent.result.domain_match.match_percentage || 0);
+          // Confidence is a string ("High", "Medium", "Low"), not a number
+          const confidence = apiEvent.result.domain_match.confidence || 'Unknown';
+          reasoning = `Domain match: ${matchPercentage}% match (${confidence} confidence)`;
         }
         if (apiEvent.result.scenes) {
           reasoning += `\nFound ${apiEvent.result.scenes.length} scenes`;
@@ -296,31 +301,31 @@ function validationReducer(
 
 function getModelForStep(stepId: StepId): string {
   const models: Record<StepId, string> = {
-    domainCheck: "DomainNet-v3",
-    sceneParsing: "SceneNet-v2, SegFormer",
-    vlmClassification: "CLIP-ViT-L/14",
-    supervisorVerify: "EthicsGuard-v1",
-    llmMapping: "GPT-4-Turbo",
-    qualityScore: "QualityNet-v2",
+    domainCheck: "Qwen2.5-VL-7B-Instruct",
+    sceneParsing: "Qwen2.5-VL-7B-Instruct",
+    vlmClassification: "Qwen2.5-VL-7B-Instruct",
+    supervisorVerify: "Qwen2.5-14B-Instruct",
+    llmMapping: "Qwen2.5-14B-Instruct",
+    qualityScore: "Qwen2.5-14B-Instruct",
   };
   return models[stepId] || "N/A";
 }
 
-export default async function ValidationPage({
+export default function ValidationPage({
   params,
 }: {
   params: Promise<{ submissionId: string }>;
 }) {
-  const { submissionId } = await params;
-  
-  return <ValidationPageClient submissionId={submissionId} />;
+  return <ValidationPageClient params={params} />;
 }
 
-function ValidationPageClient({ submissionId }: { submissionId: string }) {
+function ValidationPageClient({ params }: { params: Promise<{ submissionId: string }> }) {
+  const { submissionId } = React.use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedStepId, setSelectedStepId] = React.useState<StepId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const resultsRef = React.useRef<HTMLDivElement>(null);
   const [state, dispatch] = useReducer(validationReducer, {
     steps: STEP_DEFINITIONS.map((def) => ({
       id: def.id,
@@ -394,6 +399,15 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
     }
   }, [runningStep, selectedStepId]);
   
+  // Auto-scroll to results when validation completes
+  useEffect(() => {
+    if (state.isComplete && resultsRef.current) {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [state.isComplete]);
+  
   // Determine which step to display
   const displayStep = selectedStepId 
     ? state.steps.find(s => s.id === selectedStepId)
@@ -432,16 +446,16 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
         </Card>
       )}
 
-      {!state.isComplete ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Stepper */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Validation Pipeline</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+      {/* Validation Pipeline - Always Visible */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Stepper */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Validation Pipeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                   {state.steps.map((step, index) => {
                     const isCompleted = step.state === "passed";
                     const isRunning = step.state === "running";
@@ -594,7 +608,7 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
                           </div>
                           {scene.confidence && (
                             <p className="text-xs text-gray-500 mt-2">
-                              Confidence: {scene.confidence.toFixed(1)}%
+                              Confidence: {typeof scene.confidence === 'number' ? scene.confidence.toFixed(1) : scene.confidence}%
                             </p>
                           )}
                         </div>
@@ -623,8 +637,10 @@ function ValidationPageClient({ submissionId }: { submissionId: string }) {
             </Card>
           </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      {/* Results Section - Show when complete */}
+      {state.isComplete && (
+        <div ref={resultsRef} className="grid grid-cols-1 lg:grid-cols-2 gap-6 scroll-mt-6">
           {/* Results */}
           <Card>
             <CardHeader>

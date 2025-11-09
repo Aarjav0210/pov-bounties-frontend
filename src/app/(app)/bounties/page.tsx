@@ -8,12 +8,25 @@ import { Button } from "@/components/ui/button";
 const mockBounties = [
   {
     id: "1",
+    title: "Make a grilled cheese sandwich",
+    company: "The Daily Grind",
+    reward: 20,
+    industry: "Culinary",
+    difficulty: "Easy",
+    duration: "10 mins",
+    dueDate: "3 days",
+    image: "https://plus.unsplash.com/premium_photo-1739906794633-71adada97314?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&?w=400&h=300&fit=crop",
+    
+    tags: ["#kitchen", "#cooking"],
+  },
+  {
+    id: "9",
     title: "Do a bottle flip",
     company: "PepperTech",
     reward: 67,
     industry: "Sports",
     difficulty: "Easy",
-    duration: "30 seconds",
+    duration: "Flexible",
     dueDate: "4 hours",
     image: "https://images.unsplash.com/photo-1561041695-d2fadf9f318c?w=400&h=300&fit=crop",
     tags: ["#sports", "#bottleflip", "#hack"],

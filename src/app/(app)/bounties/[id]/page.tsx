@@ -74,7 +74,6 @@ const bountyData: Record<string, {
     reward: 67,
     description: "We're looking for video footage of someone doing as many bottle flips as they can. The video should capture the entire process from picking up the bottle to the flip, showing hands performing the actions. The winner of this challenge will receive a $67 bounty.",
     requirements: [
-      "Maximum 30 seconds of continuous footage",
       "Must show complete bottle flip process",
       "Clear visibility of hands, bottle, and floor",
       "480p minimum resolution, 24fps or higher"
@@ -159,18 +158,9 @@ export default function BountyDetailPage({ params }: { params: Promise<{ id: str
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Check video duration (hard limit: 30 seconds)
+      // Get video duration for display purposes
       const duration = await getVideoDuration(file);
       setVideoDuration(duration);
-      
-      if (duration > 30) {
-        setError(`Video is too long (${Math.round(duration)}s). Maximum length is 30 seconds.`);
-        setSelectedFile(null);
-        setFileName("");
-        // Reset file input
-        event.target.value = "";
-        return;
-      }
       
       setSelectedFile(file);
       setFileName(file.name);
@@ -636,7 +626,7 @@ export default function BountyDetailPage({ params }: { params: Promise<{ id: str
             <p className="mb-2 text-sm text-gray-600">
               <span className="font-semibold text-red-500">Click to upload</span> or drag and drop
             </p>
-            <p className="text-xs text-gray-600">MP4, MOV, or AVI (MAX. 30 seconds, 500MB)</p>
+            <p className="text-xs text-gray-600">MP4, MOV, or AVI (MAX. 500MB)</p>
             <input
               ref={fileInputRef}
               id="file-upload"
