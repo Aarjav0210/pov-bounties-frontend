@@ -8,24 +8,56 @@ import type {
  * Upload a video file to the backend
  */
 export async function uploadVideo(
-  videoFile: File
+  videoFile: File,
+  onProgress?: (progress: number) => void
 ): Promise<UploadVideoResponse> {
+  console.log("📡 uploadVideo called");
+  console.log("API Endpoint:", API_ENDPOINTS.UPLOAD_VIDEO);
+  console.log("File:", videoFile.name, videoFile.size, "bytes");
+
   const formData = new FormData();
   formData.append("file", videoFile);
 
-  const response = await fetch(API_ENDPOINTS.UPLOAD_VIDEO, {
-    method: "POST",
-    body: formData,
+  console.log("📤 Sending POST request...");
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    // Track upload progress
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable && onProgress) {
+        const progress = Math.round((e.loaded / e.total) * 100);
+        console.log(`📤 Upload progress: ${progress}%`);
+        onProgress(progress);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      console.log("📥 Response received:", xhr.status, xhr.statusText);
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const result = JSON.parse(xhr.responseText);
+          console.log("✅ Success response:", result);
+          resolve(result);
+        } catch (error) {
+          console.error("❌ Failed to parse response:", error);
+          reject(new Error("Invalid response from server"));
+        }
+      } else {
+        console.error("❌ API Error:", xhr.status, xhr.responseText);
+        reject(new Error(`Failed to upload video: ${xhr.status} ${xhr.responseText}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      console.error("❌ Network error during upload");
+      reject(new Error("Network error during upload"));
+    });
+
+    xhr.open("POST", API_ENDPOINTS.UPLOAD_VIDEO);
+    xhr.send(formData);
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Failed to upload video: ${response.status} ${errorText}`
-    );
-  }
-
-  return response.json();
 }
 
 /**

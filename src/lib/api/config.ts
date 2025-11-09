@@ -3,10 +3,10 @@
  * 
  * Base URL for the video validation API backend.
  * Can be configured via NEXT_PUBLIC_API_URL environment variable.
- * Defaults to http://localhost:8000 for local development.
+ * Defaults to the hosted backend at 184.105.3.161.
  */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_URL || "http://184.105.3.161";
 
 export const API_ENDPOINTS = {
   UPLOAD_VIDEO: `${API_BASE_URL}/upload-video`,

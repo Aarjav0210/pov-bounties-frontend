@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { submitBountyVideoDirectS3 } from "@/lib/api/client";
+import { uploadVideo } from "@/lib/api/client";
 import { compressVideo, shouldCompressVideo, formatFileSize } from "@/lib/videoCompression";
+import { useRouter } from "next/navigation";
 
 // Bounty data mapped by ID
 const bountyData: Record<string, {
@@ -21,6 +22,52 @@ const bountyData: Record<string, {
   validationSteps: { title: string; description: string }[];
 }> = {
   "1": {
+    disabled: false,
+    title: "Make a grilled cheese sandwich",
+    company: "The Daily Grind",
+    reward: 20,
+    description: "We're looking for video footage of someone making a grilled cheese sandwich. The video should capture the entire process from picking up the ingredients to the finished sandwich. The winner of this challenge will receive a $20 bounty.",
+    requirements: [
+      "Must show complete grilled cheese sandwich process",
+      "Clear visibility of hands, ingredients, and finished sandwich",
+    ],
+    examples: [
+      "No examples yet",
+    ],
+    faq: [
+      {
+        question: "Can I keep going after a failed attempt?",
+        answer: "Yes, you can keep going after a failed attempt. We will count all successful attempts.",
+      },
+    ],
+    validationSteps: [
+      {
+        title: "Rapid Domain Match",
+        description: "Verifies video is POV and shows grilled cheese sandwich.",
+      },
+      {
+        title: "Scene Parsing",
+        description: "Ensures scene complexity meets training criteria.",
+      },
+      {
+        title: "VLM Task Classification",
+        description: "Classifies task content.",
+      },
+      {
+        title: "LLM Task Validation",
+        description: "Final task evaluation.",
+      },
+      {
+        title: "Final Quality Assessment",
+        description: "Computing quality score.",
+      },
+      {
+        title: "Final Review",
+        description: "Human review for quality assurance.",
+      },
+    ],
+  },
+  "2": {
     disabled: false,
     title: "POV Video: Do a bottle flip",
     company: "PepperTech",
@@ -95,6 +142,7 @@ export default function BountyDetailPage({ params }: { params: Promise<{ id: str
   const [venmoId, setVenmoId] = useState("");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   
   // If bounty doesn't exist, show as not found
   if (!bounty) {
@@ -227,24 +275,22 @@ export default function BountyDetailPage({ params }: { params: Promise<{ id: str
         }
       }
       
-      console.log("🚀 Starting direct S3 upload...");
+      console.log("🚀 Starting video upload...");
       
-      // Submit video with user info using direct S3 upload (bypasses backend timeout)
-      const result = await submitBountyVideoDirectS3(
-        fileToUpload, 
-        name, 
-        email, 
-        venmoId,
-        (progress) => {
-          // Real-time progress updates from S3 upload
-          setUploadProgress(progress);
-        }
-      );
+      // Upload video to backend
+      const result = await uploadVideo(fileToUpload, (progress) => {
+        // Real-time progress updates from upload
+        setUploadProgress(progress);
+      });
       
       console.log("✅ Upload successful:", result);
       
-      // Show success page
-      setShowSuccess(true);
+      // Redirect to validation page
+      const videoPath = encodeURIComponent(result.path);
+      const expectedTask = encodeURIComponent(bounty.title);
+      
+      console.log("🔍 Redirecting to validation page...");
+      router.push(`/validate/${result.file_id}?video_path=${videoPath}&expected_task=${expectedTask}`);
     } catch (error) {
       console.error("❌ Submission failed:", error);
       setError(
@@ -386,7 +432,7 @@ export default function BountyDetailPage({ params }: { params: Promise<{ id: str
             </p>
           </div>
           <button className="flex min-w-[84px] shrink-0 max-w-[480px] items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-100 text-gray-900 text-sm font-bold leading-normal">
-            <span className="truncate font-bold text-red-500 text-3xl">${bounty.reward}</span>
+            <span className="truncate font-bold text-red-500 text-3xl">~${bounty.reward} <span className="text-gray-600 text-base">/ video</span></span>
           </button>
         </div>
 
@@ -679,7 +725,7 @@ export default function BountyDetailPage({ params }: { params: Promise<{ id: str
               {uploadProgress > 0 && !isCompressing && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm">
-                    <p className="text-gray-700 font-medium">📤 Uploading to S3...</p>
+                    <p className="text-gray-700 font-medium">📤 Uploading video...</p>
                     <p className="text-gray-600">{uploadProgress}%</p>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
