@@ -22,11 +22,10 @@ const bountyData: Record<string, {
   "1": {
     disabled: false,
     title: "POV Video: Do a bottle flip",
-    company: "RoboCorp",
+    company: "PepperTech",
     reward: 67,
     description: "We're looking for video footage of someone doing as many bottle flips as they can. The video should capture the entire process from picking up the bottle to the flip, showing hands performing the actions. The winner of this challenge will receive a $67 bounty.",
     requirements: [
-      "Video must be shot from first-person (POV) perspective",
       "Maximum 30 seconds of continuous footage",
       "Must show complete bottle flip process",
       "Clear visibility of hands, bottle, and floor",
