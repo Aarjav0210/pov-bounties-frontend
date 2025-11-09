@@ -75,10 +75,10 @@ export async function compressVideo(
   options: CompressionOptions = {}
 ): Promise<File> {
   const {
-    maxWidth = 512,
-    maxHeight = 512,
-    videoBitrate = '300k',
-    crf = 28,
+    maxWidth = 480,
+    maxHeight = 480,
+    videoBitrate = '250k',
+    crf = 38,
     preset = 'ultrafast',
     onProgress
   } = options;
@@ -105,12 +105,11 @@ export async function compressVideo(
       '-crf', crf.toString(),
       '-preset', preset,
       '-b:v', videoBitrate,
-      '-c:a', 'aac',
-      '-b:a', '96k',
+      '-an',
       '-movflags', '+faststart',
       '-y',
-      outputFileName
-    ];
+      outputFileName,
+    ] as string[];
 
     console.log('⚙️  Running FFmpeg compression...');
     await ffmpeg.exec(ffmpegArgs);
