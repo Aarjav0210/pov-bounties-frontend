@@ -82,6 +82,87 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Video Showcase Section */}
+          <section className="py-16 md:py-4">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                See It In Action
+              </h2>
+              <p className="mt-3 text-lg text-gray-600">
+                Real POV videos from our community
+              </p>
+            </div>
+            
+            {/* Static Video Grid */}
+            <div className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Video 1 */}
+                <div className="w-full">
+                  <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-gray-100">
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                      style={{ aspectRatio: '16/9' }}
+                    >
+                      <source src="/video1.mp4" type="video/mp4" />
+                    </video>
+                  </div>
+                </div>
+
+                {/* Video 2 */}
+                <div className="w-full">
+                  <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-gray-100">
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                      style={{ aspectRatio: '16/9' }}
+                    >
+                      <source src="/video2.mp4" type="video/mp4" />
+                    </video>
+                  </div>
+                </div>
+
+                {/* Video 3 */}
+                <div className="w-full">
+                  <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-gray-100">
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                      style={{ aspectRatio: '16/9' }}
+                    >
+                      <source src="/video3.mp4" type="video/mp4" />
+                    </video>
+                  </div>
+                </div>
+
+                {/* Video 4 */}
+                <div className="w-full">
+                  <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-gray-100">
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                      style={{ aspectRatio: '16/9' }}
+                    >
+                      <source src="/video4.mp4" type="video/mp4" />
+                    </video>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* How It Works Section */}
           <section id="how-it-works" className="py-16 md:py-24">
             <div className="mx-auto mb-10 max-w-2xl text-center">
