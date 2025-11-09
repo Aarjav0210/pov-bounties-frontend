@@ -4,7 +4,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 
 interface QualityGaugeProps {
-  score: number; // 0-100
+  score: number;
+  maxScore?: number; // Maximum possible score (default: 100)
   label?: string;
   className?: string;
   showBreakdown?: boolean;
@@ -16,23 +17,25 @@ interface QualityGaugeProps {
   };
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 80) return "#22c55e"; // green
-  if (score >= 60) return "#eab308"; // yellow
-  if (score >= 40) return "#f97316"; // orange
+function getScoreColor(score: number, maxScore: number): string {
+  const percentage = (score / maxScore) * 100;
+  if (percentage >= 80) return "#22c55e"; // green
+  if (percentage >= 60) return "#eab308"; // yellow
+  if (percentage >= 40) return "#f97316"; // orange
   return "#ef4444"; // red
 }
 
 export function QualityGauge({
   score,
+  maxScore = 100,
   label = "Quality Score",
   className,
   showBreakdown = false,
   breakdown,
 }: QualityGaugeProps) {
   const data = [
-    { value: score, fill: getScoreColor(score) },
-    { value: 100 - score, fill: "#e5e7eb" },
+    { value: score, fill: getScoreColor(score, maxScore) },
+    { value: maxScore - score, fill: "#e5e7eb" },
   ];
 
   return (
@@ -57,10 +60,13 @@ export function QualityGauge({
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-4xl font-bold" style={{ color: getScoreColor(score) }}>
+          <div className="text-4xl font-bold" style={{ color: getScoreColor(score, maxScore) }}>
             {score}
           </div>
           <div className="text-sm text-muted-foreground">{label}</div>
+          {maxScore !== 100 && (
+            <div className="text-xs text-muted-foreground mt-1">out of {maxScore}</div>
+          )}
         </div>
       </div>
 

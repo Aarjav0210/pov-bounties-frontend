@@ -75,6 +75,12 @@ export interface ValidationResult {
   scenes?: Scene[];
   verified_results?: SceneResult[];
   failed_results?: SceneResult[];
+  // Individual scene result (streamed one-by-one during analysis)
+  scene_result?: SceneResult;
+  scene_num?: number;
+  verified?: boolean;
+  verified_count?: number;
+  failed_count?: number;
   validation?: {
     confirmed: boolean;
     reasoning?: string;

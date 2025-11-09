@@ -106,6 +106,52 @@ const bountyData: Record<string, {
       },
     ],
   },
+  "10": {
+    disabled: false,
+    title: "Slice a tomato",
+    company: "CulinaryAI",
+    reward: 67,
+    description: "We're l ooking for video footage of someone slicing a tomato. Successfully slicing the tomato will earn you a $50 bounty.",
+    requirements: [
+      "Must show complete tomato slicing process",
+      "Clear visibility of hands, tomato, and cutting board",
+    ],
+    examples: [
+      "No examples yet",
+    ],
+    faq: [
+      {
+        question: "Can I keep going after a failed attempt?",
+        answer: "Yes, you can keep going after a failed attempt. We will count all successful slices.",
+      },
+    ],
+    validationSteps: [
+      {
+        title: "Rapid Domain Match",
+        description: "Verifies video is POV and shows grilled cheese sandwich.",
+      },
+      {
+        title: "Scene Parsing",
+        description: "Ensures scene complexity meets training criteria.",
+      },
+      {
+        title: "VLM Task Classification",
+        description: "Classifies task content.",
+      },
+      {
+        title: "LLM Task Validation",
+        description: "Final task evaluation.",
+      },
+      {
+        title: "Final Quality Assessment",
+        description: "Computing quality score.",
+      },
+      {
+        title: "Final Review",
+        description: "Human review for quality assurance.",
+      },
+    ],
+  },
 };
 
 export default function BountyDetailPage({ params }: { params: Promise<{ id: string }> }) {

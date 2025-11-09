@@ -61,11 +61,18 @@ interface ValidationState {
     consistency: number;
   };
   currentStepIndex: number;
+  scenes?: Array<{
+    scene_num: number;
+    start: number;
+    end: number;
+  }>;
   sceneResults?: Array<{
     scene_num: number;
     description?: string;
     verified?: boolean;
     confidence?: number;
+    start?: number;
+    end?: number;
   }>;
   startTime: Record<StepId, number>;
 }
@@ -187,14 +194,55 @@ function validationReducer(
         }
       }
 
-      // Update scene results
-      let sceneResults = state.sceneResults;
+      // Update scenes (from scene parsing stage)
+      let scenes = state.scenes;
+      if (apiEvent.result?.scenes) {
+        scenes = apiEvent.result.scenes;
+      }
+
+      // Update scene results (from scene analysis stage)
+      // Handle both individual scene results (streamed) and complete arrays (final)
+      let sceneResults = state.sceneResults || [];
+      
+      // Check for individual scene result (streamed one-by-one during analysis)
+      // API sends: result.scene_result (full object) and result.verified (boolean)
+      if (apiEvent.result?.scene_result && apiEvent.stage === "analyzing_scenes") {
+        const sceneData = apiEvent.result.scene_result;
+        const sceneNum = sceneData.scene_num ?? apiEvent.result.scene_num;
+        
+        // Only add if we have a valid scene_num
+        if (sceneNum !== undefined) {
+          const newScene = {
+            scene_num: sceneNum,
+            description: sceneData.description || "",
+            verified: sceneData.verified !== undefined ? sceneData.verified : (apiEvent.result.verified ?? false),
+            confidence: sceneData.confidence,
+            start: sceneData.start,
+            end: sceneData.end,
+          };
+          
+          // Add or update the scene result (avoid duplicates)
+          const existingIndex = sceneResults.findIndex(s => s.scene_num === newScene.scene_num);
+          if (existingIndex >= 0) {
+            // Update existing
+            sceneResults = [...sceneResults];
+            sceneResults[existingIndex] = newScene;
+          } else {
+            // Add new scene result
+            sceneResults = [...sceneResults, newScene];
+          }
+        }
+      }
+      
+      // Handle complete verified_results array (final summary - replaces individual results)
       if (apiEvent.result?.verified_results) {
-        sceneResults = apiEvent.result.verified_results.map((r) => ({
+        sceneResults = apiEvent.result.verified_results.map((r: any) => ({
           scene_num: r.scene_num,
           description: r.description,
           verified: r.verified,
           confidence: r.confidence,
+          start: r.start,
+          end: r.end,
         }));
       }
 
@@ -245,19 +293,17 @@ function validationReducer(
       let breakdown: ValidationState["breakdown"] | undefined;
       if (isComplete && apiEvent.result?.summary) {
         const summary = apiEvent.result.summary;
-        // Calculate score based on verified scenes and task confirmation
-        const sceneScore = summary.total_scenes > 0 
-          ? (summary.verified_scenes / summary.total_scenes) * 50 
-          : 0;
-        const taskScore = summary.task_confirmed ? 50 : 0;
-        finalScore = Math.round(sceneScore + taskScore);
         
+        // Calculate breakdown components
         breakdown = {
-          completeness: Math.round((summary.verified_scenes / summary.total_scenes) * 100) || 0,
-          relevance: summary.task_confirmed ? 100 : 0,
-          clarity: 85,
-          consistency: 80,
+          completeness: Math.round((summary.verified_scenes / summary.total_scenes) * 40) || 0,
+          relevance: summary.task_confirmed ? 21 : 0,
+          clarity: 16,
+          consistency: 12,
         };
+        
+        // Calculate final score as sum of breakdown components
+        finalScore = breakdown.completeness + breakdown.relevance + breakdown.clarity + breakdown.consistency;
       }
 
       return {
@@ -274,6 +320,7 @@ function validationReducer(
         rejectionReason,
         finalScore,
         breakdown,
+        scenes,
         sceneResults,
       };
     }
@@ -407,6 +454,7 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
       }, 300);
     }
   }, [state.isComplete]);
+
   
   // Determine which step to display
   const displayStep = selectedStepId 
@@ -415,7 +463,7 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
   const activeStep = displayStep;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 ${state.isComplete && !state.isRejected && state.finalScore !== undefined ? 'pb-32' : ''}`}>
       {/* Breadcrumb and Header */}
       <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -512,13 +560,12 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Table>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium text-muted-foreground w-40">
-                        Status
-                      </TableCell>
-                      <TableCell>
+                {/* Show Scene List for Scene Parsing */}
+                {activeStep?.id === "sceneParsing" && state.scenes && state.scenes.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Summary Bar */}
+                    <div className="flex items-center justify-between pb-3 border-b">
+                      <div className="flex items-center gap-3">
                         <Badge
                           className={
                             activeStep?.state === "running"
@@ -534,49 +581,109 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
                             ? "Passed"
                             : activeStep?.state || "Pending"}
                         </Badge>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium text-muted-foreground">
-                        Duration
-                      </TableCell>
-                      <TableCell>
-                        {activeStep && state.durations[activeStep.id as StepId]
-                          ? `${state.durations[activeStep.id as StepId].toFixed(1)}s`
-                          : activeStep?.state === "running"
-                          ? "In progress..."
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium text-muted-foreground">
-                        Confidence Score
-                      </TableCell>
-                      <TableCell>
-                        {activeStep && state.confidences[activeStep.id as StepId]
-                          ? `${state.confidences[activeStep.id as StepId].toFixed(1)}%`
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium text-muted-foreground">
-                        Models Used
-                      </TableCell>
-                      <TableCell>
-                        {activeStep && state.models[activeStep.id as StepId]
-                          ? state.models[activeStep.id as StepId]
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                        <span className="text-sm font-medium text-gray-900">
+                          {state.scenes.length} scenes detected
+                        </span>
+                      </div>
+                      {activeStep && state.durations[activeStep.id as StepId] && (
+                        <span className="text-sm text-gray-600">
+                          {state.durations[activeStep.id as StepId].toFixed(1)}s
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Scene List */}
+                    <div className="space-y-2">
+                      {state.scenes.map((scene) => (
+                        <div
+                          key={scene.scene_num}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
+                        >
+                          <span className="text-sm font-medium text-gray-900">
+                            Scene {scene.scene_num}
+                          </span>
+                          <span className="text-xs text-gray-600">
+                            {scene.start.toFixed(1)}s - {scene.end.toFixed(1)}s
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  /* Default Table View for Other Steps */
+                  <Table>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium text-muted-foreground w-40">
+                          Status
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              activeStep?.state === "running"
+                                ? "bg-primary/10 text-primary border-0 font-medium"
+                                : activeStep?.state === "passed"
+                                ? "bg-green-100 text-green-700 border-0 font-medium"
+                                : "bg-muted text-muted-foreground border-0"
+                            }
+                          >
+                            {activeStep?.state === "running"
+                              ? "Running"
+                              : activeStep?.state === "passed"
+                              ? "Passed"
+                              : activeStep?.state || "Pending"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-medium text-muted-foreground">
+                          Duration
+                        </TableCell>
+                        <TableCell>
+                          {activeStep && state.durations[activeStep.id as StepId]
+                            ? `${state.durations[activeStep.id as StepId].toFixed(1)}s`
+                            : activeStep?.state === "running"
+                            ? "In progress..."
+                            : "—"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-medium text-muted-foreground">
+                          Confidence Score
+                        </TableCell>
+                        <TableCell>
+                          {activeStep && state.confidences[activeStep.id as StepId]
+                            ? `${state.confidences[activeStep.id as StepId].toFixed(1)}%`
+                            : "—"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-medium text-muted-foreground">
+                          Models Used
+                        </TableCell>
+                        <TableCell>
+                          {activeStep && state.models[activeStep.id as StepId]
+                            ? state.models[activeStep.id as StepId]
+                            : "—"}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                )}
 
                 {/* Scene Results for VLM Classification */}
                 {activeStep?.id === "vlmClassification" && state.sceneResults && state.sceneResults.length > 0 && (
                   <div className="pt-4 mt-4">
-                    <h4 className="text-sm font-medium mb-3">Scene-by-Scene Results</h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium">Scene-by-Scene Results</h4>
+                      {state.scenes && state.scenes.length > 0 && (
+                        <span className="text-xs text-gray-500">
+                          {state.sceneResults.length} / {state.scenes.length} scenes analyzed
+                        </span>
+                      )}
+                    </div>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {state.sceneResults.map((scene) => (
+                      {[...state.sceneResults].sort((a, b) => a.scene_num - b.scene_num).map((scene) => (
                         <div
                           key={scene.scene_num}
                           className={`p-3 rounded-lg border ${
@@ -585,7 +692,7 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
                               : "bg-red-50 border-red-200"
                           }`}
                         >
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between gap-2">
                             <div className="flex-1">
                               <p className="text-sm font-medium">
                                 Scene {scene.scene_num}
@@ -595,22 +702,22 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
                                   {scene.description}
                                 </p>
                               )}
+                              {scene.confidence && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                  Confidence: {typeof scene.confidence === 'number' ? scene.confidence.toFixed(1) : scene.confidence}%
+                                </p>
+                              )}
                             </div>
                             <Badge
                               className={
                                 scene.verified
-                                  ? "bg-green-100 text-green-700 border-0"
-                                  : "bg-red-100 text-red-700 border-0"
+                                  ? "bg-green-100 text-green-700 border-0 flex-shrink-0"
+                                  : "bg-red-100 text-red-700 border-0 flex-shrink-0"
                               }
                             >
                               {scene.verified ? "Verified" : "Failed"}
                             </Badge>
                           </div>
-                          {scene.confidence && (
-                            <p className="text-xs text-gray-500 mt-2">
-                              Confidence: {typeof scene.confidence === 'number' ? scene.confidence.toFixed(1) : scene.confidence}%
-                            </p>
-                          )}
                         </div>
                       ))}
                     </div>
