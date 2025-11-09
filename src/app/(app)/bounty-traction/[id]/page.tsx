@@ -437,7 +437,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
             </p>
           </div>
           <button className="flex min-w-[84px] shrink-0 max-w-[480px] items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-100 text-gray-900 text-sm font-bold leading-normal">
-            <span className="truncate">${bounty.reward} / video</span>
+            <span className="truncate font-bold text-red-500 text-3xl">${bounty.reward}</span>
           </button>
         </div>
 

@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next";
 import { Inter, Crimson_Text } from "next/font/google";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${crimsonText.variable} font-display antialiased bg-background text-foreground`}>
         {children}
+        <Analytics />
       </body>
     </html>
   );
