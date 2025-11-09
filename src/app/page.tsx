@@ -1,10 +1,22 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Building2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import CardSwap, { Card } from '@/components/CardSwap'
 
 export default function Home() {
+  const router = useRouter();
+  
   return (
     <div className="relative flex min-h-screen w-full flex-col">
       {/* Animated Dot Pattern Background */}
@@ -31,28 +43,47 @@ export default function Home() {
             <h2 className="text-gray-900 text-lg font-bold">Pepper</h2>
           </Link>
           <div className="flex items-center gap-6">
-            <div className="inline-flex items-center justify-center rounded-lg bg-gray-100 p-1">
+            <nav className="hidden items-center gap-6 md:flex">
+              <Link
+                href="/bounties"
+                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              >
+                Bounties
+              </Link>
               <Link
                 href="/dashboard"
-                className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-md transition-all",
-                  "hover:bg-white hover:text-gray-900",
-                  "bg-white text-gray-900 shadow-sm"
-                )}
+                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
               >
-                Community
+                Dashboard
               </Link>
-              <Link
-                href="/enterprise"
-                className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-md transition-all",
-                  "hover:bg-white hover:text-gray-900",
-                  "text-gray-600"
-                )}
-              >
-                Enterprise
-              </Link>
-            </div>
+            </nav>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 rounded-full">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white font-semibold text-sm transition-colors">
+                    AJ
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Switch Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => router.push("/")}
+                  className="flex items-center gap-2 cursor-pointer bg-gray-50"
+                >
+                  <User className="h-4 w-4" />
+                  <span>User Account</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => router.push("/enterprise")}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span>Enterprise Account</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
