@@ -42,18 +42,14 @@ export default function EnterprisePage() {
           <section className="py-16 md:py-24">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Create Dataset */}
-              <Card className="h-full opacity-60">
+              <Card className="h-full">
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
-                    <PlusCircle className="h-8 w-8 text-muted-foreground" />
-                    <Badge variant="secondary">
-                      <Lock className="h-3 w-3 mr-1" />
-                      Coming Soon
-                    </Badge>
+                    <PlusCircle className="h-8 w-8 text-green-500" />
                   </div>
-                  <CardTitle>Create Private Dataset</CardTitle>
+                  <CardTitle>Custom Data Contracts</CardTitle>
                   <CardDescription>
-                    Post a bounty to collect custom egocentric video data for your specific use case
+                    Post a bounty to collect custom pov video data for your specific use case
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 py-6">
@@ -75,9 +71,11 @@ export default function EnterprisePage() {
                       <span>Full licensing control</span>
                     </li>
                   </ul>
-                  <Button className="w-full" size="lg" variant="enterprise" disabled>
-                    Coming Soon
-                  </Button>
+                  <Link href="/enterprise/new">
+                    <Button className="w-full" size="lg" variant="enterprise">
+                      Create New
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
 

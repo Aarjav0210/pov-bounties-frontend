@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,13 +37,10 @@ type BountyFormData = z.infer<typeof bountySchema>;
 export default function NewBountyPage() {
   const router = useRouter();
   
-  // Redirect to enterprise home - this page is disabled
-  useEffect(() => {
-    router.push("/enterprise");
-  }, [router]);
   const [augmentations, setAugmentations] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageCount, setImageCount] = useState(1000);
+  const [multiplier, setMultiplier] = useState(1);
 
   const {
     register,
@@ -64,16 +61,16 @@ export default function NewBountyPage() {
   const maxSubmissions = watch("maxSubmissions");
 
   const augmentationCosts = {
-    "scene-segmentation": 50,
-    "object-tracking": 75,
-    "audio-transcription": 25,
-    "3d-reconstruction": 150,
+    "Hand Meshes & Skeletons": 50,
+    "Hand Trajectories": 75,
+    "Semantic Segmentation": 25,
+    "Synthetic Depth Maps": 150,
   };
 
   const totalAugmentationCost = augmentations.reduce(
     (sum, aug) => sum + (augmentationCosts[aug as keyof typeof augmentationCosts] || 0),
     0
-  );
+  ) * multiplier;
 
   const totalCost = (reward || 0) * (maxSubmissions || 0) + totalAugmentationCost * (maxSubmissions || 0);
 
@@ -104,6 +101,61 @@ export default function NewBountyPage() {
       prev.includes(aug) ? prev.filter((a) => a !== aug) : [...prev, aug]
     );
   };
+
+  // Generate line chart path data based on multiplier - upward trend style
+  const generateChartPath = () => {
+    const points = 12;
+    const width = 472;
+    const height = 100;
+    const maxValue = 10;
+    const stepX = width / (points - 1);
+    
+    // Generate y values that show upward trend, scaling with multiplier
+    // Start flat and ramp up steeply as multiplier increases
+    const yValues = Array.from({ length: points }, (_, i) => {
+      const progress = i / (points - 1);
+      // Base curve: starts around 85, ends around 25 (lower y = higher on chart)
+      const baseStart = 85;
+      const baseEnd = 65;
+      const multiplierEffect = (multiplier / maxValue) * 50; // Scale effect - increased range
+      const endY = baseEnd - multiplierEffect; // Lower y = higher on chart
+      
+      // Use exponential curve to create flat start and steep ramp
+      // Lower exponent = steeper curve, higher multiplier = steeper ramp
+      const baseExponent = 3.0; // Start with cubic for very flat beginning
+      const exponentAdjustment = (multiplier / maxValue) * 1.5; // Higher multiplier = lower exponent = steeper
+      const curveExponent = baseExponent - exponentAdjustment; // Range from 3.0 to 1.5
+      const easedProgress = Math.pow(progress, curveExponent);
+      
+      // Create upward trend that starts flat and ramps up steeply
+      const trend = baseStart - (baseStart - endY) * easedProgress;
+      
+      // Add minimal variation at start, more at end
+      const variation = progress < 0.3 ? 0 : Math.sin(progress * Math.PI * 2) * 3;
+      const y = trend + variation;
+      
+      return Math.max(1, Math.min(99, y));
+    });
+
+    // Create smooth curve path using cubic bezier (matching Average Quality Score style)
+    let path = `M0 ${yValues[0]}`;
+    for (let i = 1; i < points; i++) {
+      const x = i * stepX;
+      const prevX = (i - 1) * stepX;
+      const cp1x = prevX + stepX / 3;
+      const cp1y = yValues[i - 1];
+      const cp2x = x - stepX / 3;
+      const cp2y = yValues[i];
+      path += ` C${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x} ${yValues[i]}`;
+    }
+    
+    // Add closing path for fill
+    const fillPath = `${path} L${width} ${height} L0 ${height} Z`;
+    
+    return { linePath: path, fillPath };
+  };
+
+  const chartPaths = generateChartPath();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -199,15 +251,86 @@ export default function NewBountyPage() {
         {/* Augmentations */}
         <Card className="border-0">
           <CardHeader>
-            <CardTitle>Data Augmentations (Optional)</CardTitle>
+            <CardTitle>Data Augmentations</CardTitle>
             <CardDescription>
               Add AI-powered enhancements to collected videos
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <Label htmlFor="multiplier" className="text-gray-900">
+                  Multiplier
+                </Label>
+                <span className="text-2xl font-bold text-green-600">
+                  {multiplier}x
+                </span>
+              </div>
+              <div className="mb-4 flex-1 flex items-end">
+                <svg
+                  fill="none"
+                  height="100"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 472 100"
+                  width="100%"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <defs>
+                    <linearGradient
+                      gradientUnits="userSpaceOnUse"
+                      id="sparkline-gradient-multiplier"
+                      x1="0"
+                      x2="0"
+                      y1="0"
+                      y2="100"
+                    >
+                      <stop offset="0" stopColor="#22c55e" stopOpacity="0.2" />
+                      <stop offset="1" stopColor="#22c55e" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d={chartPaths.fillPath}
+                    fill="url(#sparkline-gradient-multiplier)"
+                  />
+                  <path
+                    d={chartPaths.linePath}
+                    stroke="#22c55e"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <Label htmlFor="multiplier" className="text-gray-900">
+                  Adjust Multiplier
+                </Label>
+              </div>
+              <input
+                type="range"
+                id="multiplier"
+                min="1"
+                max="10"
+                step="1"
+                value={multiplier}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  setMultiplier(value);
+                }}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-slider"
+                style={{
+                  background: `linear-gradient(to right, #22c55e 0%, #22c55e ${((multiplier - 1) / (10 - 1)) * 100}%, #e5e7eb ${((multiplier - 1) / (10 - 1)) * 100}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>1x</span>
+                <span>2x</span>
+                <span>5x</span>
+                <span>10x</span>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               {Object.entries(augmentationCosts).map(([key, cost]) => {
                 const isSelected = augmentations.includes(key);
+                const adjustedCost = cost * multiplier;
                 return (
                   <div
                     key={key}
@@ -226,7 +349,7 @@ export default function NewBountyPage() {
                         </h4>
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-gray-600">
-                            +${cost} per submission
+                            +${adjustedCost} per submission
                           </p>
                           {isSelected && (
                             <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 ml-2" />
@@ -238,53 +361,6 @@ export default function NewBountyPage() {
                   </div>
                 );
               })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Scale */}
-        <Card className="border-0">
-          <CardHeader>
-            <CardTitle>Scale</CardTitle>
-            <CardDescription>
-              Specify how many images you want to collect
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <Label htmlFor="imageCount" className="text-gray-900">
-                  Image Count <span className="text-red-500">*</span>
-                </Label>
-                <span className="text-2xl font-bold text-green-600">
-                  {imageCount.toLocaleString()}
-                </span>
-              </div>
-              <input
-                type="range"
-                id="imageCount"
-                min="1000"
-                max="50000"
-                step="500"
-                value={imageCount}
-                {...register("imageCount", { valueAsNumber: true })}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  setImageCount(value);
-                  setValue("imageCount", value, { shouldValidate: true });
-                }}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-slider"
-                style={{
-                  background: `linear-gradient(to right, #22c55e 0%, #22c55e ${((imageCount - 1000) / (50000 - 1000)) * 100}%, #e5e7eb ${((imageCount - 1000) / (50000 - 1000)) * 100}%, #e5e7eb 100%)`
-                }}
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>1,000</span>
-                <span>50,000</span>
-              </div>
-              {errors.imageCount && (
-                <p className="text-sm text-red-500 mt-1">{errors.imageCount.message}</p>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -318,7 +394,7 @@ export default function NewBountyPage() {
 
               <div>
                 <Label htmlFor="maxSubmissions" className="text-gray-900">
-                  Max Submissions <span className="text-red-500">*</span>
+                  Submissions Upper Bound <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="maxSubmissions"
@@ -345,7 +421,7 @@ export default function NewBountyPage() {
               <p className="text-xs text-gray-600 mt-2">
                 Base reward: ${((reward || 0) * (maxSubmissions || 0)).toLocaleString()}
                 {totalAugmentationCost > 0 &&
-                  ` + Augmentations: $${(totalAugmentationCost * (maxSubmissions || 0)).toLocaleString()}`}
+                  ` + Augmentations (${multiplier}x): $${(totalAugmentationCost * (maxSubmissions || 0)).toLocaleString()}`}
               </p>
             </div>
           </CardContent>
