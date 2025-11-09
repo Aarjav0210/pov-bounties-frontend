@@ -18,6 +18,7 @@ const bountyData: Record<string, {
   requirements: string[];
   examples: string[];
   faq: { question: string; answer: string }[];
+  validationSteps: { title: string; description: string }[];
 }> = {
   "1": {
     disabled: false,
@@ -40,80 +41,28 @@ const bountyData: Record<string, {
         answer: "Yes, you can keep going after a failed attempt. We will count all successful flips.",
       },
     ],
-  },
-  "2": {
-    disabled: true,
-    title: "POV Video: Preparing a Caesar Salad",
-    company: "CulinaryAI",
-    reward: 50,
-    description: "First-person video of preparing a Caesar salad from start to finish.",
-    requirements: [],
-    examples: [],
-    faq: [],
-  },
-  "3": {
-    disabled: true,
-    title: "POV Video: Changing a Tire",
-    company: "AutoFix Inc.",
-    reward: 250,
-    description: "First-person video of changing a car tire.",
-    requirements: [],
-    examples: [],
-    faq: [],
-  },
-  "4": {
-    disabled: true,
-    title: "POV Video: Repotting a Houseplant",
-    company: "GreenThumb Bots",
-    reward: 75,
-    description: "First-person video of repotting a houseplant.",
-    requirements: [],
-    examples: [],
-    faq: [],
-  },
-  "5": {
-    disabled: true,
-    title: "POV Video: Baking Chocolate Chip Cookies",
-    company: "CulinaryAI",
-    reward: 100,
-    description: "First-person video of baking chocolate chip cookies.",
-    requirements: [],
-    examples: [],
-    faq: [],
-  },
-  "6": {
-    disabled: true,
-    title: "POV Video: Setting up a Router",
-    company: "ConnectNet",
-    reward: 120,
-    description: "First-person video of setting up a wireless router.",
-    requirements: [],
-    examples: [],
-    faq: [],
-  },
-  "7": {
-    disabled: true,
-    title: "POV Video: Folding a Fitted Sheet",
-    company: "HomeHelper AI",
-    reward: 40,
-    description: "First-person video of folding a fitted sheet.",
-    requirements: [],
-    examples: [],
-    faq: [],
-  },
-  "8": {
-    disabled: true,
-    title: "POV Video: Brewing Pour-Over Coffee",
-    company: "BrewBot",
-    reward: 60,
-    description: "First-person video of brewing pour-over coffee.",
-    requirements: [],
-    examples: [],
-    faq: [],
+    validationSteps: [
+      {
+        title: "Domain Check",
+        description: "Verifies video is POV and shows bottle flipping.",
+      },
+      {
+        title: "Scene Parsing",
+        description: "Ensures scene complexity meets training criteria.",
+      },
+      {
+        title: "Audio Analysis",
+        description: "Checks for clear, usable audio without copyrighted material.",
+      },
+      {
+        title: "Final Review",
+        description: "Human review for quality assurance.",
+      },
+    ],
   },
 };
 
-export default function BountyTractionPage({ params }: { params: Promise<{ id: string }> }) {
+export default function BountyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Unwrap params Promise
   const { id } = use(params);
   
@@ -147,7 +96,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // If bounty doesn't exist, show as disabled
+  // If bounty doesn't exist, show as not found
   if (!bounty) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center">
@@ -233,7 +182,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
     try {
       let fileToUpload = selectedFile;
       
-      // Compress video to 512x512 for VLM processing
+      // Compress video to 480x480 for VLM processing
       if (needsCompression) {
         console.log("🗜️ Downsampling video to 480x480...");
         setIsCompressing(true);
@@ -510,15 +459,46 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
 
         {activeTab === "requirements" && (
           <div className="py-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Submission Requirements</h3>
-            <ul className="space-y-3">
-              {bounty.requirements.map((req, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-red-500 text-xl mt-0.5">check_circle</span>
-                  <span className="text-gray-600">{req}</span>
-                </li>
-              ))}
-            </ul>
+            {/* Validation Pipeline */}
+            {bounty.validationSteps && bounty.validationSteps.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Validation Pipeline</h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  Submitted videos will undergo the following automated checks before being sent for final review.
+                </p>
+                <div className="grid grid-cols-[auto_1fr] gap-x-4">
+                  {bounty.validationSteps.map((step, index) => (
+                    <div key={index} className="contents">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center justify-center w-6 h-6 shrink-0 rounded-full bg-red-500 text-white mt-2">
+                          <span className="material-symbols-outlined !text-[14px] !leading-none">check</span>
+                        </div>
+                        {index < bounty.validationSteps.length - 1 && (
+                          <div className="w-px bg-gray-200 h-full"></div>
+                        )}
+                      </div>
+                      <div className={`flex flex-1 flex-col ${index < bounty.validationSteps.length - 1 ? 'pb-8' : ''}`}>
+                        <p className="text-gray-900 text-base font-medium leading-normal">{step.title}</p>
+                        <p className="text-gray-600 text-sm font-normal leading-normal">{step.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Requirements List */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Submission Requirements</h3>
+              <ul className="space-y-3">
+                {bounty.requirements.map((req, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-red-500 text-xl mt-0.5">check_circle</span>
+                    <span className="text-gray-600">{req}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
 
@@ -642,7 +622,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
                     <div className="text-sm text-blue-800">
                       <p className="font-medium">Optimizing for VLM</p>
                       <p className="text-xs text-blue-600 mt-1">
-                        We'll downsample to 512x512 to match VLM processing (faster upload & processing)
+                        We'll downsample to 480x480 to match VLM processing (faster upload & processing)
                       </p>
                     </div>
                   </div>
@@ -750,4 +730,3 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
     </div>
   );
 }
-

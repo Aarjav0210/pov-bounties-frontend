@@ -249,7 +249,7 @@ export default function BountiesPage() {
       {/* Bounty Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {paginatedBounties.map((bounty) => (
-          <Link key={bounty.id} href={`/bounty-traction/${bounty.id}`}>
+          <Link key={bounty.id} href={`/bounties/${bounty.id}`}>
             <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-[0_0_12px_rgba(0,0,0,0.08)] hover:shadow-[0_0_16px_rgba(0,0,0,0.12)] transition-shadow duration-300 cursor-pointer">
               <div
                 className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-xl"
