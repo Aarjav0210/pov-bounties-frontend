@@ -100,7 +100,7 @@ export async function compressVideo(
 
     const ffmpegArgs = [
       '-i', inputFileName,
-      '-vf', `scale=${maxWidth}:${maxHeight}:force_original_aspect_ratio=decrease,pad=${maxWidth}:${maxHeight}:(ow-iw)/2:(oh-ih)/2`,
+      '-vf', `scale=${maxWidth}:${maxHeight}:force_original_aspect_ratio=decrease`,
       '-c:v', 'libx264',
       '-crf', crf.toString(),
       '-preset', preset,
