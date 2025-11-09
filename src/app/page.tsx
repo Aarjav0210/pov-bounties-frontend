@@ -48,7 +48,7 @@ export default function Home() {
                 href="/bounties"
                 className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
               >
-                Bounties
+                Marketplace
               </Link>
               <Link
                 href="/dashboard"
@@ -103,7 +103,7 @@ export default function Home() {
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <Link href="/bounties">
                   <Button size="lg" className="h-12 px-6 text-base">
-                    Explore Bounties
+                    Explore Marketplace
                   </Button>
                 </Link>
                 <Link href="/enterprise">

@@ -16,13 +16,12 @@ import {
 import { cn } from "@/lib/utils";
 
 const userNavigation = [
-  { name: "Bounties", href: "/bounties" },
+  { name: "Marketplace", href: "/bounties" },
   { name: "Dashboard", href: "/dashboard" },
 ];
 
-// Enterprise navigation disabled - only home page accessible
 const enterpriseNavigation: { name: string; href: string }[] = [
-  // Dashboard and New Dataset routes are disabled but files remain
+  { name: "Dashboard", href: "/enterprise/dashboard" },
 ];
 
 interface AppShellProps {

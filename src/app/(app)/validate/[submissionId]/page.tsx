@@ -373,6 +373,7 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
   const [selectedStepId, setSelectedStepId] = React.useState<StepId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const resultsRef = React.useRef<HTMLDivElement>(null);
+  const sceneResultsRef = React.useRef<HTMLDivElement>(null);
   const [state, dispatch] = useReducer(validationReducer, {
     steps: STEP_DEFINITIONS.map((def) => ({
       id: def.id,
@@ -461,6 +462,28 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
     ? state.steps.find(s => s.id === selectedStepId)
     : (runningStep || currentStep);
   const activeStep = displayStep;
+
+  // Auto-scroll to newest scene result during VLM Classification
+  useEffect(() => {
+    const currentActiveStep = selectedStepId 
+      ? state.steps.find(s => s.id === selectedStepId)
+      : (runningStep || currentStep);
+    
+    if (
+      currentActiveStep?.id === "vlmClassification" &&
+      state.sceneResults &&
+      state.sceneResults.length > 0 &&
+      sceneResultsRef.current
+    ) {
+      // Small delay to ensure DOM has updated
+      setTimeout(() => {
+        sceneResultsRef.current?.scrollTo({
+          top: sceneResultsRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }, 100);
+    }
+  }, [state.sceneResults, state.steps, selectedStepId, runningStep, currentStep]);
 
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 ${state.isComplete && !state.isRejected && state.finalScore !== undefined ? 'pb-32' : ''}`}>
@@ -682,7 +705,7 @@ function ValidationPageClient({ params }: { params: Promise<{ submissionId: stri
                         </span>
                       )}
                     </div>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div ref={sceneResultsRef} className="space-y-2 max-h-64 overflow-y-auto">
                       {[...state.sceneResults].sort((a, b) => a.scene_num - b.scene_num).map((scene) => (
                         <div
                           key={scene.scene_num}

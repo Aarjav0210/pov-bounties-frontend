@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,36 +40,125 @@ const submissions = [
 const videoAugmentations = [
   {
     title: "Original",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDc-zUl-lHKtBCTyIbktQkfM7BymBo-TqcrwZjrER3LADIa2YNwCwS8MRy0ylIlmuBFKkJfVu0963Wws5KJQl4xfLZ0N8JF-78PCZMtWPhD4nOMuEO68fNoZEuJ060A-QFxFD-_5Q2J1iTe_Dtb3oaAhKAYnycBsSA2mju6JA59VOSQZIe1mV9A6N-dHQqmy0ZHdbew-tENb6t9PdAJ2YnYrF9bze8etv4MHicsOlPB47psyquxbo6RY7_DRWFge2YBHDIeVKLjB9WH",
+    video: "/submissions/gcnew_src.mp4",
   },
   {
     title: "Hand Masks",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDwV4PqLNcBArhFqCchRBcd89h6QLgCAOKSo_o4nyCCSZmuGTU7-SSlWqi1a_Vh9pT34FZ7VgegDS1oYf9kqxboP1pTQO31DaqRBWpy59_znN0j3lIOA_vLCbdoGutt7KnE4UUjJ6P5CQZq1WmXn5KSPODloYSvpQIfHWEGzpVSndcUOrHB-iTkNQijPjBstD4qAHziKvGmZ3zBuITphzF0azoZjnxG0Mhsbd52f3930LcOEvKGl7XABT-IA5ywzygFEhTz1NbyDlLM",
+    video: "/submissions/1_mano_overlay.mp4",
   },
   {
     title: "Synthetic Depth",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCRMsERiYKNN_PwaU_TvSk5ruFL7ZQM0FK_UY-5e4Hv08zLVFDY0pdP6nUDZU0OoyTHjkhMB9rzcwQDk2ZQPeGyIqS7Iho2e6fICjBBZf-RQ2iYNGeOaE0j2-jTOwzV8s99AAFZOEdW8OhkL96OPbRY47MyCuJwl6F7LzCplJniOL88VWFf8PDnxt6zD8E_4V5iCJQmf1nIBkid2g_dAY-ezIP4oDJWutqBwRVYiTMjd6FF8NFmGwTEgfBICtG8JRUMhvzp_MVal2yd",
+    video: "/submissions/depth.mp4",
   },
   {
     title: "Semantic Segmentation",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCFeU_XOoNiiTKBU5cxNbUqrkGDTQl6D8tF88AKDODAPUa8bNtCP4hF-HToD9XW_2-QbFYwMvfbTR2PuwHjrcpkuA9E6uto7-wUhHt88vKmlLPta2GXAzTO8LUqiFT1Znrzz1Lz3UZc8pbaaNVYTFTEjVewnS6XL3RUl8Xaq8qMChojdJZCaRh6b94YMt6yUsrtclnf884wLBua8twKDm6Zc8HHMa3bZEBa4evxH5SQGx6IPMKQxNUSSqUujG0azwJm9vVc_vFYzP_v",
+    video: "/submissions/gcnew_segmented.mp4",
   },
 ];
 
 export default function BountySubmissionsPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
-  
-  // Redirect to enterprise home - this page is disabled
-  useEffect(() => {
-    router.push("/enterprise");
-  }, [router]);
-  
   const [selectedSubmission, setSelectedSubmission] = useState(submissions[0]);
-  const [currentTime, setCurrentTime] = useState(12);
-  const [totalTime, setTotalTime] = useState(45);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalTime, setTotalTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Refs for all video elements
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const isSyncingRef = useRef(false);
 
-  const progress = (currentTime / totalTime) * 100;
+  // Load videos on mount and ensure they start paused
+  useEffect(() => {
+    videoRefs.current.forEach((video) => {
+      if (video) {
+        video.load();
+        video.pause();
+        video.currentTime = 0;
+      }
+    });
+  }, []);
+
+  // Sync all videos when play/pause state changes
+  useEffect(() => {
+    isSyncingRef.current = true;
+    videoRefs.current.forEach((video) => {
+      if (video) {
+        if (isPlaying) {
+          video.play().catch(console.error);
+        } else {
+          video.pause();
+        }
+      }
+    });
+    setTimeout(() => {
+      isSyncingRef.current = false;
+    }, 100);
+  }, [isPlaying]);
+
+  // Sync all videos when currentTime changes (from user interaction like progress bar)
+  useEffect(() => {
+    if (isSyncingRef.current) return;
+    
+    isSyncingRef.current = true;
+    videoRefs.current.forEach((video) => {
+      if (video && Math.abs(video.currentTime - currentTime) > 0.2) {
+        video.currentTime = currentTime;
+      }
+    });
+    setTimeout(() => {
+      isSyncingRef.current = false;
+    }, 100);
+  }, [currentTime]);
+
+  // Update current time from the first video (they should all be in sync)
+  useEffect(() => {
+    const video = videoRefs.current[0];
+    if (!video) return;
+
+    const updateTime = () => {
+      // Only update if we're not currently syncing (to avoid loops)
+      if (!isSyncingRef.current) {
+        setCurrentTime(video.currentTime);
+      }
+    };
+
+    const updateDuration = () => {
+      if (video.duration && !isNaN(video.duration)) {
+        setTotalTime(video.duration);
+      }
+    };
+
+    video.addEventListener("timeupdate", updateTime);
+    video.addEventListener("loadedmetadata", updateDuration);
+    video.addEventListener("durationchange", updateDuration);
+
+    return () => {
+      video.removeEventListener("timeupdate", updateTime);
+      video.removeEventListener("loadedmetadata", updateDuration);
+      video.removeEventListener("durationchange", updateDuration);
+    };
+  }, []);
+
+  // Handle progress bar click
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const progressBar = e.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    const newTime = percentage * totalTime;
+    
+    isSyncingRef.current = true;
+    setCurrentTime(newTime);
+    videoRefs.current.forEach((video) => {
+      if (video) {
+        video.currentTime = newTime;
+      }
+    });
+    setTimeout(() => {
+      isSyncingRef.current = false;
+    }, 100);
+  };
+
+  const progress = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;
 
   return (
     <div className="flex flex-col p-6">
@@ -94,11 +182,56 @@ export default function BountySubmissionsPage({ params }: { params: { id: string
               {videoAugmentations.map((aug, index) => (
                 <div
                   key={index}
-                  className="bg-cover bg-center flex flex-col gap-3 rounded-xl justify-end p-4 aspect-video relative overflow-hidden"
-                  style={{
-                    backgroundImage: `linear-gradient(0deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 40%), url(${aug.image})`,
-                  }}
+                  className="bg-black flex flex-col gap-3 rounded-lg justify-end p-4 aspect-video relative overflow-hidden"
                 >
+                  <video
+                    ref={(el) => {
+                      videoRefs.current[index] = el;
+                    }}
+                    src={aug.video}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="auto"
+                    onError={(e) => {
+                      const video = e.currentTarget;
+                      const error = video.error;
+                      console.error(`Error loading video ${aug.title}:`, {
+                        error,
+                        errorCode: error?.code,
+                        errorMessage: error?.message,
+                        networkState: video.networkState,
+                        readyState: video.readyState,
+                        src: video.src,
+                      });
+                    }}
+                    onLoadedMetadata={(e) => {
+                      const video = e.currentTarget;
+                      console.log(`Video ${aug.title} metadata loaded:`, {
+                        duration: video.duration,
+                        videoWidth: video.videoWidth,
+                        videoHeight: video.videoHeight,
+                        readyState: video.readyState,
+                      });
+                    }}
+                    onLoadedData={(e) => {
+                      console.log(`Video ${aug.title} data loaded successfully`);
+                    }}
+                    onCanPlay={(e) => {
+                      const video = e.currentTarget;
+                      console.log(`Video ${aug.title} can play:`, {
+                        readyState: video.readyState,
+                        networkState: video.networkState,
+                      });
+                    }}
+                    onStalled={(e) => {
+                      console.warn(`Video ${aug.title} stalled`);
+                    }}
+                    onSuspend={(e) => {
+                      console.warn(`Video ${aug.title} suspended`);
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   <p className="text-white text-base font-bold leading-tight relative z-10">
                     {aug.title}
                   </p>
@@ -118,8 +251,13 @@ export default function BountySubmissionsPage({ params }: { params: { id: string
                   <Play className="h-6 w-6" />
                 )}
               </button>
-              <span className="text-sm text-gray-600">0:{String(currentTime).padStart(2, "0")}</span>
-              <div className="w-full h-2 bg-gray-300 rounded-full flex items-center relative">
+              <span className="text-sm text-gray-600">
+                {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, "0")}
+              </span>
+              <div 
+                className="w-full h-2 bg-gray-300 rounded-full flex items-center relative cursor-pointer"
+                onClick={handleProgressClick}
+              >
                 <div
                   className="h-full bg-green-500 rounded-full relative"
                   style={{ width: `${progress}%` }}
@@ -127,7 +265,9 @@ export default function BountySubmissionsPage({ params }: { params: { id: string
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full border-2 border-green-500"></div>
                 </div>
               </div>
-              <span className="text-sm text-gray-600">0:{String(totalTime).padStart(2, "0")}</span>
+              <span className="text-sm text-gray-600">
+                {Math.floor(totalTime / 60)}:{String(Math.floor(totalTime % 60)).padStart(2, "0")}
+              </span>
             </div>
           </div>
 

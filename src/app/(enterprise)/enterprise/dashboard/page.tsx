@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,13 +67,6 @@ const bounties = [
 ];
 
 export default function EnterpriseDashboard() {
-  const router = useRouter();
-  
-  // Redirect to enterprise home - this page is disabled
-  useEffect(() => {
-    router.push("/enterprise");
-  }, [router]);
-  
   const [selectedBounty, setSelectedBounty] = useState(bounties[0]);
 
   const getStatusBadge = (status: string) => {
