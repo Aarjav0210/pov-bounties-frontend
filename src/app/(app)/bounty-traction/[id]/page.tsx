@@ -135,9 +135,11 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
   // Compression state
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
+  const [simulatedProgress, setSimulatedProgress] = useState(0);
   const [originalSize, setOriginalSize] = useState(0);
   const [compressedSize, setCompressedSize] = useState(0);
   const [needsCompression, setNeedsCompression] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
   
   // Form fields
   const [name, setName] = useState("");
@@ -158,15 +160,29 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
   
   const isDisabled = bounty.disabled;
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Check video duration (hard limit: 30 seconds)
+      const duration = await getVideoDuration(file);
+      setVideoDuration(duration);
+      
+      if (duration > 30) {
+        setError(`Video is too long (${Math.round(duration)}s). Maximum length is 30 seconds.`);
+        setSelectedFile(null);
+        setFileName("");
+        // Reset file input
+        event.target.value = "";
+        return;
+      }
+      
       setSelectedFile(file);
       setFileName(file.name);
       setOriginalSize(file.size);
       setCompressedSize(0);
       setUploadProgress(0);
       setCompressionProgress(0);
+      setSimulatedProgress(0);
       setError(null);
       
       // Check if compression is needed
@@ -174,9 +190,28 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
       setNeedsCompression(shouldCompress);
       
       if (shouldCompress) {
-        console.log(`📊 Will downsample to 512x512 for VLM processing (${formatFileSize(file.size)})`);
+        console.log(`📊 Will downsample to 480x480 for VLM processing (${formatFileSize(file.size)})`);
       }
     }
+  };
+  
+  // Helper function to get video duration
+  const getVideoDuration = (file: File): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        resolve(video.duration);
+      };
+      
+      video.onerror = () => {
+        reject(new Error('Failed to load video'));
+      };
+      
+      video.src = URL.createObjectURL(file);
+    });
   };
 
   const handleSubmit = async () => {
@@ -201,9 +236,19 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
       
       // Compress video to 512x512 for VLM processing
       if (needsCompression) {
-        console.log("🗜️ Downsampling video to 512x512...");
+        console.log("🗜️ Downsampling video to 480x480...");
         setIsCompressing(true);
         setCompressionProgress(0);
+        setSimulatedProgress(0);
+        
+        // Start simulated progress timer for better UX during long encoding phase
+        const progressSimulator = setInterval(() => {
+          setSimulatedProgress(prev => {
+            // Slowly increment to 85%, then stop (let real progress take over)
+            if (prev < 85) return prev + 1;
+            return prev;
+          });
+        }, 2000); // Increment by 1% every 2 seconds
         
         try {
           fileToUpload = await compressVideo(selectedFile, {
@@ -214,13 +259,19 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
             preset: 'ultrafast',
             onProgress: (progress) => {
               setCompressionProgress(progress);
+              // Clear simulator when we get real progress near the end
+              if (progress >= 90) {
+                clearInterval(progressSimulator);
+              }
             }
           });
           
+          clearInterval(progressSimulator);
           setCompressedSize(fileToUpload.size);
           console.log(`✅ Compression complete! ${formatFileSize(selectedFile.size)} → ${formatFileSize(fileToUpload.size)}`);
           setIsCompressing(false);
         } catch (compressionError) {
+          clearInterval(progressSimulator);
           console.error("⚠️ Compression failed, uploading original file:", compressionError);
           setIsCompressing(false);
           // Continue with original file if compression fails
@@ -257,6 +308,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
       setIsCompressing(false);
       setUploadProgress(0);
       setCompressionProgress(0);
+      setSimulatedProgress(0);
     }
   };
 
@@ -559,7 +611,7 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
             <p className="mb-2 text-sm text-gray-600">
               <span className="font-semibold text-red-500">Click to upload</span> or drag and drop
             </p>
-            <p className="text-xs text-gray-600">MP4, MOV, or AVI (MAX. 500MB)</p>
+            <p className="text-xs text-gray-600">MP4, MOV, or AVI (MAX. 30 seconds, 500MB)</p>
             <input
               ref={fileInputRef}
               id="file-upload"
@@ -576,7 +628,11 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
               {/* File info */}
               <div className="flex justify-between items-center text-sm">
                 <p className="truncate text-gray-900 font-medium">{fileName}</p>
-                <p className="text-gray-600">{formatFileSize(originalSize)}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-600">{Math.round(videoDuration)}s</p>
+                  <span className="text-gray-400">•</span>
+                  <p className="text-gray-600">{formatFileSize(originalSize)}</p>
+                </div>
               </div>
               
               {/* Compression notice */}
@@ -614,15 +670,29 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm">
                     <p className="text-gray-700 font-medium">🗜️ Optimizing video...</p>
-                    <p className="text-gray-600">{compressionProgress}%</p>
+                    <p className="text-gray-600">
+                      {compressionProgress >= 20 && compressionProgress < 90 
+                        ? `${simulatedProgress}%` 
+                        : `${compressionProgress}%`}
+                    </p>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${compressionProgress}%` }}
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300" 
+                      style={{ 
+                        width: compressionProgress >= 20 && compressionProgress < 90 
+                          ? `${simulatedProgress}%` 
+                          : `${compressionProgress}%`
+                      }}
                     ></div>
                   </div>
-                  <p className="text-xs text-gray-500">Downsampling to 512x512...</p>
+                  <p className="text-xs text-gray-500">
+                    {compressionProgress < 20 
+                      ? 'Loading encoder...' 
+                      : compressionProgress >= 90 
+                        ? 'Finalizing...' 
+                        : 'Encoding video (typically 1-2 minutes)...'}
+                  </p>
                 </div>
               )}
               
