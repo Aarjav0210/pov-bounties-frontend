@@ -220,9 +220,9 @@ export default function BountyTractionPage({ params }: { params: Promise<{ id: s
           fileToUpload = await compressVideo(selectedFile, {
             maxWidth: 512,
             maxHeight: 512,
-            videoBitrate: '500k',
+            videoBitrate: '300k',
             crf: 28,
-            preset: 'veryfast',
+            preset: 'ultrafast',
             onProgress: (progress) => {
               setCompressionProgress(progress);
             }

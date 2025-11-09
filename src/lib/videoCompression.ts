@@ -77,9 +77,9 @@ export async function compressVideo(
   const {
     maxWidth = 512,
     maxHeight = 512,
-    videoBitrate = '500k',
+    videoBitrate = '300k',
     crf = 28,
-    preset = 'veryfast',
+    preset = 'ultrafast',
     onProgress
   } = options;
 
