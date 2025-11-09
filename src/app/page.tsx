@@ -1,6 +1,8 @@
+"use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import CardSwap, { Card } from '@/components/CardSwap'
 
 export default function Home() {
   return (
@@ -83,7 +85,7 @@ export default function Home() {
           </section>
 
           {/* Video Showcase Section */}
-          <section className="py-16 md:py-4">
+          <section className="pb-16 pt-4 md:pt-4">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
                 See It In Action
@@ -93,11 +95,93 @@ export default function Home() {
               </p>
             </div>
             
+            {/* Video Carousel */}
+            <div className="container mx-auto max-w-5xl px-4 py-10">
+              <div className="flex items-center justify-start left-[-35%] h-[250px] md:h-[500px]" style={{ position: 'relative'}}>
+                <div style={{ width: '50%', maxWidth: '600px' }}>
+                  {/* @ts-ignore */}
+                  <CardSwap
+                    cardDistance={200}
+                    verticalDistance={185}
+                    delay={3000}
+                    pauseOnHover={false}
+                    onCardClick={() => {}}
+                  >
+                {/* @ts-ignore */}
+                <Card>
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ aspectRatio: '16/9' }}
+                  >
+                    <source src="/video1.mp4" type="video/mp4" />
+                  </video>
+                </Card>
+                {/* @ts-ignore */}
+                <Card>
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ aspectRatio: '16/9' }}
+                  >
+                    <source src="/video2.mp4" type="video/mp4" />
+                  </video>
+                </Card>
+                {/* @ts-ignore */}
+                <Card>
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ aspectRatio: '16/9' }}
+                  >
+                    <source src="/video3.mp4" type="video/mp4" />
+                  </video>
+                </Card>
+                {/* @ts-ignore */}
+                <Card>
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ aspectRatio: '16/9' }}
+                  >
+                    <source src="/video4.mp4" type="video/mp4" />
+                  </video>
+                </Card>
+                {/* @ts-ignore */}
+                <Card>
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ aspectRatio: '16/9' }}
+                  >
+                    <source src="/video5.mp4" type="video/mp4" />
+                  </video>
+                </Card>
+              </CardSwap>
+                </div>
+              </div>
+            </div>
+
             {/* Static Video Grid */}
-            <div className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* <div className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
                 {/* Video 1 */}
-                <div className="w-full">
+                {/* <div className="w-full">
                   <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-gray-100">
                     <video
                       autoPlay
@@ -110,10 +194,10 @@ export default function Home() {
                       <source src="/video1.mp4" type="video/mp4" />
                     </video>
                   </div>
-                </div>
+                </div>  */}
 
                 {/* Video 2 */}
-                <div className="w-full">
+                {/* <div className="w-full">
                   <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-gray-100">
                     <video
                       autoPlay
@@ -126,10 +210,10 @@ export default function Home() {
                       <source src="/video2.mp4" type="video/mp4" />
                     </video>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Video 3 */}
-                <div className="w-full">
+                {/* <div className="w-full">
                   <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-gray-100">
                     <video
                       autoPlay
@@ -142,10 +226,10 @@ export default function Home() {
                       <source src="/video3.mp4" type="video/mp4" />
                     </video>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Video 4 */}
-                <div className="w-full">
+                {/* <div className="w-full">
                   <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-gray-100">
                     <video
                       autoPlay
@@ -160,7 +244,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </section>
 
           {/* How It Works Section */}
